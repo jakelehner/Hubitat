@@ -18,9 +18,26 @@
  *
  */
 
+import groovy.transform.Field
+
 public static String version()      {  return "v0.0.1"  }
 
-public colorMode = 'RGB'
+@Field static final String device_model = 'WLPA19C' 
+
+@Field static final String wyze_property_push_notifications_enabled = 'P1'
+@Field static final String wyze_property_power = 'P3'
+@Field static final String wyze_property_device_online = 'P5'
+@Field static final String wyze_property_brightness = 'P1501' 
+@Field static final String wyze_property_color_temp = 'P1502'
+@Field static final String wyze_property_color = 'P1507' 
+@Field static final String wyze_property_control_light = 'P1508' 
+@Field static final String wyze_property_power_loss_recovery = 'P1509' 
+
+// const WYZE_API_REMAINING_TIME = 'P1505'
+// const WYZE_API_AWAY_MODE = 'P1506'
+// const WYZE_API_DELAY_OFF = 'P1510'
+
+colorMode = 'RGB'
  
 import groovy.transform.Field
 
@@ -32,18 +49,19 @@ metadata {
 		importUrl: "https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/drivers/wyzehub-meshlight-driver.groovy"
 	) {
 		capability "Light"
-		capability "ColorControl"
-		capability "ColorTemperature"
-		capability "Refresh"
 		capability "SwitchLevel"
-		capability "ChangeLevel"
-		capability "ColorMode"
+		capability "ColorTemperature"
+		// capability "ColorControl"
+		// capability "ColorMode"
+		// capability "Refresh"
 		// capability "LightEffects" // TODO
 		
 
 		// command "flash"
 		// command "flashOnce"
 		// command "flashOff"
+
+		attribute "deviceModel", "string"
 
 	}
 
@@ -74,32 +92,56 @@ void initialize() {
 
 def getThisCopyright(){"&copy; 2021 Jake Lehner"}
 
-def parse(String description)
-{
+def parse(String description) {
 	log.warn("Running unimplemented parse for: '${description}'")
 }
 
-/*
-	on
-    
-	Turns the device on.
-*/
-def on()
-{
-	// The server will update on/off status
-	log.trace "Msg: $description ON"
-	
+def on() {
+	parent.logDebug("'On' Pressed for device ${device.label}")
+	parent.apiRunAction(device.deviceNetworkId, device_model, 'power_on')
 }
 
-
-/*
-	off
-    
-	Turns the device off.
-*/
-def off()
-{
-	// The server will update on/off status
-	log.trace "Msg: $description OFF"
+def off() {
+	parent.logDebug("'Off' Pressed for device ${device.label}")
+	parent.apiRunAction(device.deviceNetworkId, device_model, 'power_off')
 }
 
+def setLevel(level, durationSecs = null) {
+	parent.logDebug('setColorTemperature()')
+
+	// TODO validate inputs
+	// TODO handle durationSecs
+
+	actions = [
+		[
+			'pid': wyze_property_brightness,
+			'pvalue': level.toString()
+		]
+	]
+	parent.logDebug(actions)
+	parent.apiRunActionList(device.deviceNetworkId, device_model, actions)
+}
+
+def setColorTemperature(colortemperature, level = null, durationSecs = null) {
+	parent.logDebug('setColorTemperature()')
+
+	// TODO validate inputs
+	// TODO handle durationSecs
+
+	actions = [
+		[
+			'pid': wyze_property_color_temp,
+			'pvalue': colortemperature.toString()
+		]
+	]
+
+	if (level) {
+		actions << [
+			'pid': wyze_property_brightness,
+			'pvalue': level.toString()
+		]
+	}
+
+	parent.logDebug(actions)
+	parent.apiRunActionList(device.deviceNetworkId, device_model, actions)
+}

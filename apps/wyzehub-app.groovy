@@ -19,22 +19,29 @@
  */
 
 import groovy.json.JsonBuilder
+import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static String version() { return "v0.0.1" }
-public static String apiAppName() { return "com.hualai" }
-public static String apiAppVersion() { return "2.19.14" }
+public static final String version() { return "v0.0.1" }
+public static final String apiAppName() { return "com.hualai" }
+public static final String apiAppVersion() { return "2.19.14" }
+@Field static final String childNamespace = "jakelehner" 
+@Field static final Map driverMap = [
+   'MeshLight': [label: 'Color Bulb', driver: 'Wyze Color Bulb'],
+   'Plug': [label: 'Plug', driver: 'Wyze Plug'],,
+   'default': [label: 'Unsupported Type', driver: null]
+]
 
 String wyzeAuthBaseUrl() { return "https://auth-prod.api.wyze.com" }
 String wyzeApiBaseUrl() { return "https://api.wyzecam.com" }
 
 Map wyzeRequestHeaders() {
     return [
-        'x-api-key': 'WMXHYf79Nr5gIlt3r0r7p9Tcw5bvs6BB4U8O8nGJ',
-        'Content-Type': 'application/json; charset=utf-8',
-		'Accept': 'application/json',
-		'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1 Safari/605.1.15'
+        "x-api-key": "WMXHYf79Nr5gIlt3r0r7p9Tcw5bvs6BB4U8O8nGJ",
+        "Content-Type": "application/json",
+		"Accept": "application/json",
+		"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1 Safari/605.1.15"
     ]
 }
 
@@ -91,20 +98,21 @@ def updated()
 	logDebug('updated()')
 
 	settings.hashedPassword = hashPassword(settings.password)
-	settings.password = null
-	password = null
-
+	
 	authenticateWyzeAccount()
 
 	if (debugOutput) runIn(300,debugOff) //disable debug logs after 5 min
 	initialize()
-
-	logDebug('updated() complete')
 }
 
 def initialize() 
 {
 	logDebug('initialize()')
+
+	if(settings['addDevices']) {
+		logDebug('clearing addDevices cache')
+		app.removeSetting('addDevices')
+	}
 
 	if (logEnable) {
 		logInfo('Logging is Enabled')
@@ -116,14 +124,11 @@ def initialize()
 	// TODO
 	// runEvery5Minutes(checkDevices)
 
-	logDebug('initialize() complete')
 }
 
 def uninstalled() 
 {
 	logDebug('uninstalled()')
-
-	logDebug('uninstalled() complete')
 }
 
 //  -------
@@ -135,6 +140,14 @@ def getThisCopyright(){'&copy; 2021 Your Mom'}
 def pageMenu() 
 {
 	logDebug('pageMenu()')
+	
+	if (settings["addDevices"]) {
+		logDebug("New devices selected. Creating...")
+		logDebug(settings["addDevices"])
+		addDevices(settings["addDevices"])
+		app.removeSetting('addDevices')
+	}
+
 	initialize()
 
 	return dynamicPage(
@@ -161,7 +174,7 @@ def pageMenu()
 
 		section("") {
 			href(name: 'hrefSelectLights', title: 'Select Devices',
-               description: '', page: 'pageSelectDevices')
+               description: '', page: 'pageSelectDevices', image: '')
         //  href(name: 'hrefSelectGroups', title: 'Select Groups',
         //        description: '', page: 'pageSelectGroups')
 			href(name: 'hrefAuthSettings', title: 'Configure Login Info',
@@ -202,87 +215,64 @@ def pageSelectDevices() {
 	
 	logDebug('pageSelectLights()')
 	
-	Map deviceList = getDeviceList()
-	logDebug(deviceList)
-
+	updateDeviceCache()
+	deviceList = getDeviceListFromCache()
+	
 	List newDevices = []
-	addedBulbs = false
-	unclaimedBulbs = false;
+	List unsupportedDevices = []
+	Map unclaimedDevices = [:];
 
 	if (deviceList) {
-		deviceList.each { device ->
-            // com.hubitat.app.DeviceWrapper bulbChild = unclaimedBulbs.find { b -> b.deviceNetworkId == "CCH/${state.bridgeID}/Light/${cachedBulb.key}" }
-            if (false) {
-            //    addedBulbs.put(cachedBulb.key, [hubitatName: bulbChild.name, hubitatId: bulbChild.id, hueName: cachedBulb.value?.name])
-            //    unclaimedBulbs.removeElement(bulbChild)
-            } else {
+		logDebug('pageSelectLights(): process device list')
+		
+		deviceList.each { mac, device ->
+			productType = driverMap[device.product_type]
+			childDeviceExists = getChildDevice(device.mac)
+			if(!productType) {
+				unsupportedDevices << device
+			}else if (productType && !childDeviceExists) {
                Map newDevice = [:]
-               newDevice << [(device.mac): (device)]
+               newDevice << [(device.mac): "[${productType.label}] ${device.nickname}"]
                newDevices << newDevice
             }
-         }
-        //  arrNewBulbs = arrNewDevices.sort { a, b ->
-            // Sort by bulb name (default would be hue ID)
-            // a.entrySet().iterator().next()?.value <=> b.entrySet().iterator().next()?.value
-         }
-        //  addedBulbs = addedBulbs.sort { it.value.hubitatName }
+		}
+
+		// Sort
+		newDevices = newDevices.sort { a, b ->
+			a.entrySet().iterator().next()?.value <=> b.entrySet().iterator().next()?.value
+		}
+		unsupportedDevices = unsupportedDevices.sort { it.value }
 	}
 
 	return dynamicPage(
-		name: 'pageSelectLights', 
-		title: "${app.label} Bulb Selection", 
+		name: 'pageSelectDevices', 
+		title: "${app.label} Device Selection", 
 		install: false, 
 		uninstall: true, 
 		refreshInterval: 0,
 		nextPage: 'pageMenu'
 	) {
-		section(getFormat('title', 'Select Devices')) {}
-
-		if (!deviceCache) {
-			section("No Devices Found...") {            
-			input(name: "btnBulbRefresh", type: "button", title: "Refresh", submitOnChange: true)
+		
+		if (!deviceList) {
+			section("No New Devices Found...") {            
+				input(name: "btnDeviceRefresh", type: "button", title: "Refresh", submitOnChange: true)
 			}
 		} else {
-			section("") {
-				input(name: "newBulbs", type: "enum", title: "Select devices to add:",
-					multiple: true, options: newDevices)
 
-				input(name: "boolAppendDevice", type: "bool", title: "Append device to Hubitat device name")
-				paragraph ""
-				// paragraph("Previously added lights${addedBulbs ? ' <span style=\"font-style: italic\">(Hue Bridge device name in parentheses)</span>' : ''}:")
-			
-			if (addedBulbs) {
-				StringBuilder bulbText = new StringBuilder()
-				bulbText << "<ul>"
-				addedBulbs.each {
-					bulbText << "<li><a href=\"/device/edit/${it.value.hubitatId}\" target=\"_blank\">${it.value.hubitatName}</a>"
-					bulbText << " <span style=\"font-style: italic\">(${it.value.hueName ?: 'not found on Hue'})</span></li>"
-					//input(name: "btnRemove_Light_ID", type: "button", title: "Remove", width: 3)
-				}
-				bulbText << "</ul>"
-				paragraph(bulbText.toString())
-			}
-			else {
-				paragraph "<span style=\"font-style: italic\">No added lights found</span>"
-			}
-			if (unclaimedBulbs) {
-				paragraph "Hubitat light devices not found on Hue:"
-				StringBuilder bulbText = new StringBuilder()
-				bulbText << "<ul>"
-				unclaimedBulbs.each {
-					bulbText << "<li><a href=\"/device/edit/${it.id}\" target=\"_blank\">${it.displayName}</a></li>"
-				}
-				bulbText << "</ul>"
-				paragraph(bulbText.toString())
-			}
-			}
-			section("Rediscover Bulbs") {
-				paragraph("If you added new lights to the Hue Bridge and do not see them above, click/tap the button " +
-						"below to retrieve new information from the Bridge.")
-				input(name: "btnBulbRefresh", type: "button", title: "Refresh Bulb List", submitOnChange: true)
+			section(getFormat('title', 'Add Devices')) {
+				input(name: "addDevices", type: "enum", title: "Select devices to add:",
+					submitOnChange: false, multiple: true, options: newDevices)
 			}
 		}
-		
+
+		if(unsupportedDevices) {
+			section(getFormat('title', 'Unsupported Devices')) {
+				unsupportedDevices.each{ device ->
+					paragraph " - [${device.product_type}] ${device.nickname}"
+				}
+			}
+		}
+
    		displayFooter()
 	}	
 }
@@ -297,7 +287,7 @@ def displayFooter() {
 def getFormat(type, myText=""){
 	if(type == "header-green") return "<div style='color:#ffffff;font-weight: bold;background-color:#81BC00;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${myText}</div>"
 	if(type == "line") return "\n<hr style='background-color:#1A77C9; height: 1px; border: 0;'></hr>"
-	if(type == "title") return "<h2 style='color:#1A77C9;font-weight: bold'>${myText}</h2>"
+	if(type == "title") return "<h4 style='color:#1A77C9;font-weight: bold'>${myText}</h4>"
 }
 
 //  --------------
@@ -346,15 +336,138 @@ try {
 	return false
 }
 
-    logDebug("authenticateWyzeAccount() complete")
     return true
 }
 
-private def getDeviceList() {
-	logDebug("getDeviceList()")
+private def void updateDeviceCache() {
+	logDebug("updateDeviceCache()")
+	state.deviceCache = [
+		'groups': [:],
+		'devices': [:]
+	]
 	requestBody = wyzeRequestBody() + ['sv': 'c417b62d72ee44bf933054bdca183e77']
 	apiPost('/app/v2/home_page/get_object_list', requestBody) { response ->
-		return response.device_list
+
+		response.data.device_group_list.each { deviceGroup ->
+			state.deviceCache['groups'][deviceGroup.group_id] = deviceGroup
+		}
+
+		response.data.device_list.each { device ->
+			state.deviceCache['devices'][device.mac] = device
+		}
+		
+	}
+	
+}
+
+private def Map getDeviceCache() {
+	return state.deviceCache
+}
+
+private def Map getDeviceFromCache(String mac) {
+	return state.deviceCache['devices'][mac]
+}
+
+private def Map getDeviceListFromCache() {
+	return state.deviceCache['devices']
+}
+
+private def Map getDeviceGroupListFromCache() {
+	return state.deviceCache['groups']
+}
+
+private def addDevices(List deviceMacs) {
+	logDebug('addDevices()')
+
+	deviceMacs.each { mac ->
+		logDebug("Add device with mac ${mac}")
+		Map deviceFromCache = getDeviceFromCache(mac)
+		if (deviceFromCache) {
+			logDebug('Found Device in Cache. Adding...')
+			driver = driverMap[deviceFromCache.product_type].driver
+			if (!driver) {
+				logDebug("Driver not found. Unsupported Device Type: ${deviceFromCache.product_type}")
+				return
+			}
+			deviceProps = [
+				name: (driver), 
+				label: (deviceFromCache.nickname),
+				deviceModel: (deviceFromCache.product_model)
+			]
+			addChildDevice(childNamespace, driver, deviceFromCache.mac, deviceProps)
+		} else { 
+			logDebug('DID NOT find Device in Cache')
+		}
+
+	}
+}
+
+def apiRunAction(String deviceMac, String deviceModel, String actionKey) {
+	logDebug("apiRunActionList()")
+	logDebug(deviceMac)
+	logDebug(deviceModel)
+
+	requestBody = wyzeRequestBody() + [
+		'sv': '011a6b42d80a4f32b4cc24bb721c9c96', 
+		'action_key': actionKey,
+		'action_params': [:],
+		'instance_id': deviceMac,
+		'provider_key': deviceModel
+	]
+
+	apiPost('/app/v2/auto/run_action', requestBody) { response ->
+		logDebug(response)
+	}
+}
+
+def apiRunActionList(String deviceMac, String deviceModel, List actionList) {
+	logDebug("apiRunActionList()")
+	logDebug(deviceMac)
+	logDebug(deviceModel)
+
+	List apiActionList = [
+		[
+			'action_key': 'set_mesh_property',
+			'instance_id': (deviceMac),
+			'provider_key': (deviceModel),
+			'action_params': [
+				'list': [
+						[
+							'mac': (deviceMac),
+							'plist': (actionList)
+						]
+					]
+			]
+		]
+	]
+
+	requestBody = wyzeRequestBody() + [
+		'sv': '5e02224ae0c64d328154737602d28833', 
+		'action_list': apiActionList
+	]
+
+	apiPost('/app/v2/auto/run_action_list', requestBody) { response ->
+		logDebug(response)
+	}
+}
+
+def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId, value) {
+	logDebug("setDeviceProperty()")
+	logDebug(deviceMac)
+	logDebug(deviceModel)
+	logDebug(propertyId)
+	logDebug(value)
+
+	requestBody = wyzeRequestBody() + [
+		'sv': '44b6d5640c4d4978baba65c8ab9a6d6e',
+		'device_mac': deviceMac,
+		'device_model': deviceModel, 
+		'pid': propertyId,
+		'pvalue': value
+	]
+	
+	apiPost('/app/v2/device/set_property', requestBody) { response ->
+		logDebug(response)
 	}
 }
 
@@ -362,17 +475,24 @@ def apiPost(String path, Map body = [], callback = {}) {
 	logDebug('apiPost()')
 
 	bodyJson = (new JsonBuilder(body)).toString()
-	
+	logDebug(bodyJson)
+	logDebug(wyzeRequestHeaders())
 	params = [
 		'uri'                : wyzeApiBaseUrl(),
 		'headers'            : wyzeRequestHeaders(),
-		'requestContentType' : 'application/json; charset=utf-8',
+		'contentType' : 'application/json',
+		// 'requestContentType' : 'application/json; charset=utf-8',
 		'path'               : path,
 		'body'               : bodyJson
 	]
 
 	try {
-		httpPost(params) { response -> callback(response.data) }
+		httpPost(params) { response -> 
+			if (response.data.code != "1") {
+				logError("apiPost error!")
+			}
+			callback(response.data) 
+		}
 	} catch (Exception e) {
 		logDebug("API Call to ${params.uri}${params.path} failed with Exception: ${e}")
 		return false
@@ -392,6 +512,16 @@ private String hashPassword(String password) {
 
 private String md5(String str) {
 	return MessageDigest.getInstance("MD5").digest(str.bytes).encodeHex().toString()
+}
+
+void appButtonHandler(btn) {
+   switch(btn) {
+      case "btnDeviceRefresh":
+         // Just want to resubmit page, so nothing
+         break        
+      default:
+         log.warn "Unhandled app button press: $btn"
+   }
 }
 
 def debugOff()
