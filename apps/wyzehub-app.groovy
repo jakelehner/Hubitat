@@ -453,10 +453,6 @@ def apiRunActionList(String deviceMac, String deviceModel, List actionList) {
 
 def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId, value) {
 	logDebug("setDeviceProperty()")
-	logDebug(deviceMac)
-	logDebug(deviceModel)
-	logDebug(propertyId)
-	logDebug(value)
 
 	requestBody = wyzeRequestBody() + [
 		'sv': '44b6d5640c4d4978baba65c8ab9a6d6e',
@@ -476,7 +472,6 @@ def apiPost(String path, Map body = [], callback = {}) {
 
 	bodyJson = (new JsonBuilder(body)).toString()
 	logDebug(bodyJson)
-	logDebug(wyzeRequestHeaders())
 	params = [
 		'uri'                : wyzeApiBaseUrl(),
 		'headers'            : wyzeRequestHeaders(),
@@ -530,18 +525,18 @@ def debugOff()
 	app?.updateSetting("debugEnabled",[value:"false",type:"bool"])
 }
 
-private void logDebug(str) {
-   if (settings.logEnabled && settings.debugEnabled) log.debug("[${app.label}] " + str)
+private void logDebug(message) {
+   if (settings.logEnabled && settings.debugEnabled) log.debug("[${app.label}] " + message)
 }
 
-private void logInfo(str) {
-   if (settings.logEnabled) log.info("[${app.label}] " + str)
+private void logInfo(message) {
+   if (settings.logEnabled) log.info("[${app.label}] " + message)
 }
 
-private void logWarn(str) {
-   if (settings.logEnabled) log.warn("[${app.label}] " + str)
+private void logWarn(message) {
+   if (settings.logEnabled) log.warn("[${app.label}] " + message)
 }
 
-private void logError(str) {
-   if (settings.logEnabled) log.error("[${app.label}] " + str)
+private void logError(message) {
+   if (settings.logEnabled) log.error("[${app.label}] " + message)
 }

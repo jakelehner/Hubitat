@@ -36,6 +36,7 @@ metadata {
 		importUrl: "https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/drivers/wyzehub-meshlight-driver.groovy"
 	) {
 		capability "Outlet"
+		capability "Refresh"
 	
 	}
 
@@ -64,34 +65,24 @@ void initialize() {
    }
 }
 
-def getThisCopyright(){"&copy; 2021 Jake Lehner"}
-
-def parse(String description)
-{
+void parse(String description) {
 	log.warn("Running unimplemented parse for: '${description}'")
 }
 
-/*
-	on
-    
-	Turns the device on.
-*/
-def on()
-{
+def getThisCopyright(){"&copy; 2021 Jake Lehner"}
+
+def refresh() {
+	parent.logDebug("Refresh device ${device.label}")
+}
+
+def on() {
 	parent.logDebug("'On' Pressed for device ${device.label}")
-	parent.logDebug("Device is currently ${device.switch}")
 	parent.apiSetDeviceProperty(device.deviceNetworkId, device_model, wyze_property_power, 1)
+	sendEvent(name: "switch", value: "on")
 }
 
-/*
-	off
-    
-	Turns the device off.
-*/
-def off()
-{
+def off() {
 	parent.logDebug("'Off' Pressed for device ${device.label}")
-	parent.logDebug("Device is currently ${device.switch}")
 	parent.apiSetDeviceProperty(device.deviceNetworkId, device_model, wyze_property_power, 0)
+	sendEvent(name: "switch", value: "off")
 }
-
