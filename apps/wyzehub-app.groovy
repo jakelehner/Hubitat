@@ -26,10 +26,11 @@ import static java.util.UUID.randomUUID
 public static final String version() { return "v0.0.1" }
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }
+
 @Field static final String childNamespace = "jakelehner" 
 @Field static final Map driverMap = [
-   'MeshLight': [label: 'Color Bulb', driver: 'Wyze Color Bulb'],
-   'Plug': [label: 'Plug', driver: 'Wyze Plug'],,
+   'MeshLight': [label: 'Color Bulb', driver: 'WyzeHub Color Bulb'],
+   'Plug': [label: 'Plug', driver: 'WyzeHub Plug'],,
    'default': [label: 'Unsupported Type', driver: null]
 ]
 
@@ -87,7 +88,7 @@ def installed()
 	logDebug('installed()')
 
 	state.serverInstalled = true
-	// if (!state.devices) { state.devices = [:] }  // Maybe a good place to store devices?
+
 	initialize()
 	
 	logDebug('installed() complete')
@@ -108,6 +109,13 @@ def updated()
 def initialize() 
 {
 	logDebug('initialize()')
+
+	if (!state.deviceCache) {
+		state.deviceCache = [
+			'groups': [:],
+			'devices': [:]
+		]
+	}
 
 	if(settings['addDevices']) {
 		logDebug('clearing addDevices cache')
@@ -357,7 +365,6 @@ private def void updateDeviceCache() {
 		}
 		
 	}
-	
 }
 
 private def Map getDeviceCache() {
@@ -402,10 +409,55 @@ private def addDevices(List deviceMacs) {
 	}
 }
 
-def apiRunAction(String deviceMac, String deviceModel, String actionKey) {
-	logDebug("apiRunActionList()")
-	logDebug(deviceMac)
-	logDebug(deviceModel)
+private def doSendDeviceEvent(com.hubitat.app.DeviceWrapper device, eventName, eventValue, eventUnit) {
+	logDebug("doSendDeviceEvent()")
+	logDebug(device)
+	logDebug([eventName, eventValue, eventUnit])
+
+	String descriptionText = "${device.displayName} ${eventName} is ${eventValue}${eventUnit ?: ''}"
+   	logDebug(descriptionText)
+
+    if (eventUnit) {
+        eventValue += eventUnit
+    }
+
+	eventData = [
+		'name': eventName,
+		'value': eventValue,
+        'unit': eventUnit,
+		'description': descriptionText,
+		'isStateChange': true
+	]
+
+	if (eventUnit) {
+		properties['eventUnit'] = eventUnit
+	}
+
+	logDebug('Sending event data...')
+	logDebug(eventData)
+
+	sendEvent(device, eventData)
+}
+
+def apiGetDevicePropertyList(String deviceMac, String deviceModel, callback = null) {
+	logDebug("apiGetDevicePropertyList()")
+	
+	requestBody = wyzeRequestBody() + [
+		'sv': 'c417b62d72ee44bf933054bdca183e77',
+		"device_mac": deviceMac,
+    	"device_model": deviceModel
+	]
+
+	apiPost('/app/v2/device/get_property_list', requestBody) { response ->
+		if(callback) {
+            callback(response.data['property_list'] ?: [])
+        }
+	}
+}
+
+def apiRunAction(String deviceMac, String deviceModel, String actionKey, callback = null) {
+	logDebug("apiRunAction()")
+	logDebug(['mac': deviceMac, 'model': deviceModel])
 
 	requestBody = wyzeRequestBody() + [
 		'sv': '011a6b42d80a4f32b4cc24bb721c9c96', 
@@ -420,7 +472,7 @@ def apiRunAction(String deviceMac, String deviceModel, String actionKey) {
 	}
 }
 
-def apiRunActionList(String deviceMac, String deviceModel, List actionList) {
+def apiRunActionList(String deviceMac, String deviceModel, List actionList, callback = null) {
 	logDebug("apiRunActionList()")
 	logDebug(deviceMac)
 	logDebug(deviceModel)
@@ -451,7 +503,7 @@ def apiRunActionList(String deviceMac, String deviceModel, List actionList) {
 	}
 }
 
-def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId, value) {
+def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId, value, callback = null) {
 	logDebug("setDeviceProperty()")
 
 	requestBody = wyzeRequestBody() + [
@@ -471,7 +523,9 @@ def apiPost(String path, Map body = [], callback = {}) {
 	logDebug('apiPost()')
 
 	bodyJson = (new JsonBuilder(body)).toString()
-	logDebug(bodyJson)
+
+    logDebug(bodyJson)
+	
 	params = [
 		'uri'                : wyzeApiBaseUrl(),
 		'headers'            : wyzeRequestHeaders(),
@@ -485,6 +539,9 @@ def apiPost(String path, Map body = [], callback = {}) {
 		httpPost(params) { response -> 
 			if (response.data.code != "1") {
 				logError("apiPost error!")
+                logDebug(response.data)
+				callback(false)
+				return
 			}
 			callback(response.data) 
 		}

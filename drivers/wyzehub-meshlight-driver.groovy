@@ -25,51 +25,58 @@ public static String version()      {  return "v0.0.1"  }
 
 @Field static final String device_model = 'WLPA19C' 
 
-@Field static final String wyze_property_push_notifications_enabled = 'P1'
 @Field static final String wyze_property_power = 'P3'
 @Field static final String wyze_property_device_online = 'P5'
 @Field static final String wyze_property_brightness = 'P1501' 
 @Field static final String wyze_property_color_temp = 'P1502'
+@Field static final String wyze_property_rssi = 'P1504'
 @Field static final String wyze_property_remaing_time = 'P1505'
-@Field static final String wyze_property_away_mode = 'P1506'
+@Field static final String wyze_property_vacation_mode = 'P1506'
 @Field static final String wyze_property_color = 'P1507' 
-@Field static final String wyze_property_control_light = 'P1508' 
+@Field static final String wyze_property_color_mode = 'P1508' 
 @Field static final String wyze_property_power_loss_recovery = 'P1509' 
-@Field static final String wyze_property_delay_off = 'P1510' 
+@Field static final String wyze_property_delay_off = 'P1510'
  
+@Field static final String wyze_property_power_value_on = '1'
+@Field static final String wyze_property_power_value_off = '0'
+@Field static final String wyze_property_color_mode_value_ct = '2' 
+@Field static final String wyze_property_color_mode_value_rgb = '1' 
+
 import groovy.transform.Field
 
 metadata {
 	definition(
-		name: "Wyze Color Bulb", 
+		name: "WyzeHub Color Bulb", 
 		namespace: "jakelehner", 
 		author: "Jake Lehner", 
 		importUrl: "https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/drivers/wyzehub-meshlight-driver.groovy"
 	) {
-		capability "Refresh"
 		capability "Light"
 		capability "SwitchLevel"
 		capability "ColorTemperature"
 		capability "ColorControl"
-		// capability "LightEffects" // TODO
-		
+		capability "ColorMode"
+		capability "Refresh"
+		// capability "LightEffects"
 
-		// command "flash"
+		// command "toggleVacationMode"
 		// command "flashOnce"
-		// command "flashOff"
-
-		attribute "deviceModel", "string"
-
-	}
-
-	preferences 
-	{
 		
+		attribute "vacationMode", "bool"
+		attribute "online", "bool"
+		attribute "rssi", "number"
+
 	}
+
 }
 
 void installed() {
     parent.logDebug("installed()")
+
+	parent.logDebug("before: " + device.getDataValue('deviceModel'))
+	device.updateDataValue('deviceModel', device_model)
+	parent.logDebug("after: " + device.getDataValue('deviceModel'))
+
     initialize()
 }
 
@@ -81,10 +88,12 @@ void updated() {
 void initialize() {
    parent.logDebug("initialize()")
    Integer disableMinutes = 30
-   if (enableDebug) {
-      parent.logDebug "Debug logging will be automatically disabled in ${disableMinutes} minutes"
-      runIn(disableMinutes*60, debugOff)
-   }
+
+// TODO?
+//    if (enableDebug) {
+//       parent.logDebug "Debug logging will be automatically disabled in ${disableMinutes} minutes"
+//       runIn(disableMinutes*60, debugOff)
+//    }
 }
 
 void parse(String description) {
@@ -95,18 +104,26 @@ def getThisCopyright(){"&copy; 2021 Jake Lehner"}
 
 def refresh() {
 	parent.logDebug("Refresh device ${device.label}")
+	parent.apiGetDevicePropertyList(device.deviceNetworkId, device.getDataValue('deviceModel')) { propertyList ->
+		createDeviceEventsFromPropertyList(propertyList)
+	}
 }
+
 
 def on() {
 	parent.logDebug("'On' Pressed for device ${device.label}")
 	parent.apiRunAction(device.deviceNetworkId, device_model, 'power_on')
-	sendEvent(name: "switch", value: "on")
+	createDeviceEventsFromPropertyList([
+		['pid': wyze_property_power, 'value': wyze_property_power_value_on]
+	])
 }
 
 def off() {
 	parent.logDebug("'Off' Pressed for device ${device.label}")
 	parent.apiRunAction(device.deviceNetworkId, device_model, 'power_off')
-	sendEvent(name: "switch", value: "off")
+	createDeviceEventsFromPropertyList([
+		['pid': wyze_property_power, 'value': wyze_property_power_value_off]
+	])
 }
 
 def setLevel(level, durationSecs = null) {
@@ -122,7 +139,9 @@ def setLevel(level, durationSecs = null) {
 	]
 
 	parent.apiRunActionList(device.deviceNetworkId, device_model, actions)
-	sendEvent(name: "level", value: level)
+	createDeviceEventsFromPropertyList([
+		['pid': wyze_property_brightness, 'value': level]
+	])
 }
 
 def setColorTemperature(colortemperature, level = null, durationSecs = null) {
@@ -145,13 +164,20 @@ def setColorTemperature(colortemperature, level = null, durationSecs = null) {
 		]
 	}
 
+	parent.logDebug(actions)
+
 	parent.apiRunActionList(device.deviceNetworkId, device_model, actions)
 
-	sendEvent(name: "colorTemperature", value: colortemperature)
-	sendEvent(name: "color", value: null)
-	sendEvent(name: "hue", value: null)
-	sendEvent(name: "saturation", value: null)
-	sendEvent(name: "level", value: null)
+	propertyList = [
+		['pid': wyze_property_color_mode, 'value': wyze_property_color_mode_value_ct],
+		['pid': wyze_property_color_temp, 'value': colortemperature]	
+	]
+
+	if (level) {
+		propertyList << ['pid': wyze_property_brightness, 'value': level]
+	}
+
+	createDeviceEventsFromPropertyList(propertyList)
 }
 
 def setColor(colormap) {
@@ -168,14 +194,12 @@ def setColor(colormap) {
 		]
 	]
 
-	parent.apiRunActionList(device.deviceNetworkId, device_model, actions)	
+	parent.apiRunActionList(device.deviceNetworkId, device_model, actions)
 
-	sendEvent(name: "colorTemperature", value: null)
-	sendEvent(name: "color", value: hex)
-	sendEvent(name: "hue", value: colormap.hue)
-	sendEvent(name: "saturation", value: colormap.saturation)
-	sendEvent(name: "level", value: colormap.level)
-
+	createDeviceEventsFromPropertyList([
+		['pid': wyze_property_color_mode, 'value': wyze_property_color_mode_value_rgb],
+		['pid': wyze_property_color, 'value': hex]	
+	])
 }
 
 def setHue(hue) {
@@ -198,7 +222,11 @@ def setHue(hue) {
 	]
 
 	parent.apiRunActionList(device.deviceNetworkId, device_model, actions)	
-	sendEvent(name: "hue", value: hue)
+
+	createDeviceEventsFromPropertyList([
+		['pid': wyze_property_color_mode, 'value': wyze_property_color_mode_value_rgb],
+		['pid': wyze_property_color, 'value': hex]	
+	])
 }
 
 def setSaturation(saturation) {
@@ -221,10 +249,225 @@ def setSaturation(saturation) {
 	]
 
 	parent.apiRunActionList(device.deviceNetworkId, device_model, actions)
-	sendEvent(name: "saturation", value: saturation)	
+
+	createDeviceEventsFromPropertyList([
+		['pid': wyze_property_color_mode, 'value': wyze_property_color_mode_value_rgb],
+		['pid': wyze_property_color, 'value': hex]	
+	])	
 }
 
-private def hsvToHexNoHash(hue, saturation, level) {
+private void createDeviceEventsFromPropertyList(List propertyList) {
+    parent.logDebug("createEventsFromPropertyList()")
+
+    String eventName, eventUnit
+    def eventValue // could be String or number
+
+    // Feels silly to loop through this twice but we need colorMode early.
+    // TODO Better way to search propertyList for element with pid = P1508?
+    propertyList.each { property ->
+        if(property.pid == wyze_property_color_mode) {
+			
+            deviceColorMode = (property.value == "1" ? 'RGB' : 'CT')
+            
+            if (device.hasCapability('ColorMode')) {
+                eventName = "colorMode"
+                eventUnit = null
+                eventValue = deviceColorMode
+                currentValue = device.currentValue(eventName)
+                if (currentValue == null || currentValue != eventValue) {
+                    parent.logDebug('Updating Property: colorMode')
+                    parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+                }
+            }
+        }
+    }
+
+    propertyList.each { property ->
+	
+        switch(property.pid) {
+            // Switch State
+            case wyze_property_power:
+				eventName = "switch"
+                eventUnit = null
+                eventValue = property.value == "1" ? "on" : "off"
+                currentValue = device.currentValue(eventName)
+				if (currentValue == null || currentValue != eventValue) {
+					parent.logDebug('Updating Property: switch')
+                    parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+                } 
+            break
+        
+            // Device Online
+            case wyze_property_device_online:
+                eventName = "online"
+                eventUnit = null
+                eventValue = property.value == "1" ? "true" : "false"
+                currentValue = device.currentValue(eventName)
+                if (currentValue == null || currentValue != eventValue) {
+                    parent.logDebug('Updating Property: online')
+                    parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+                }
+            break
+
+            // Brightness
+            case wyze_property_brightness:
+                eventName = "level"
+                eventUnit = '%'
+                eventValue = property.value
+                
+                currentValue = device.currentValue(eventName)
+                if (currentValue == null || currentValue != eventValue) {
+                    parent.logDebug('Updating Property: level')
+                    parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+                }
+            break
+
+            // Color Temp
+            case wyze_property_color_temp:
+				if (deviceColorMode == 'CT') {
+					// Set Temperature
+					eventName = "colorTemperature"
+					eventUnit = '°K'
+					eventValue = property.value
+					currentValue = device.currentValue(eventName)
+					if (currentValue == null || currentValue != eventValue) {
+						parent.logDebug('Updating Property: colorTemperature')
+						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+					}
+
+					// Set HEX Color
+					eventName = "color"
+					eventUnit = null
+					eventValue = null
+					currentValue = device.currentValue(eventName)
+					if (currentValue == null || currentValue != eventValue) {
+						parent.logDebug('Updating Property: color')
+						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+					}
+
+					// Set Hue Color
+					eventName = "hue"
+					eventUnit = null
+					eventValue = null
+					currentValue = device.currentValue(eventName)
+					if (currentValue == null || currentValue != eventValue) {
+						parent.logDebug('Updating Property: hue')
+						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+					}
+
+					// Set Saturation
+					eventName = "saturation"
+					eventUnit = null
+					eventValue = null
+					currentValue = device.currentValue(eventName)
+					if (currentValue == null || currentValue != eventValue) {
+						parent.logDebug('Updating Property: saturation')
+						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+					}
+				}   
+            break
+
+            // RSSI
+            case wyze_property_rssi:
+                eventName = "rssi"
+                eventUnit = 'db'
+                eventValue = property.value
+                currentValue = device.currentValue(eventName)
+                if (currentValue == null || currentValue != eventValue) {
+                    parent.logDebug('Updating Property: rssi')
+                    parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+                }
+            break
+
+            // Vacation Mode
+            case wyze_property_vacation_mode:
+                eventName = "vacationMode"
+                eventUnit = null
+                eventValue = property.value == "1" ? "true" : "false"
+                currentValue = device.currentValue(eventName)
+                if (currentValue == null || currentValue != eventValue) {
+                    parent.logDebug('Updating Property: vacationMode')
+                    parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+                }
+            break
+
+            // Color
+            case wyze_property_color:
+				parent.logDebug(deviceColorMode)
+				if (deviceColorMode == 'RGB') {
+					// Set HEX Color
+					eventName = "color"
+					eventUnit = null
+					eventValue = property.value
+					currentValue = device.currentValue(eventName)
+					if (currentValue == null || currentValue != eventValue) {
+						parent.logDebug('Updating Property: color')
+						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+					}
+
+					hsv = hexToHsv(property.value)
+					parent.logDebug('hsv')
+					parent.logDebug(hsv)
+
+					// Set Hue
+					eventName = "hue"
+					eventUnit = null
+					eventValue = hsv[0]
+					currentValue = device.currentValue(eventName)
+					if (currentValue == null || currentValue != eventValue) {
+						parent.logDebug('Updating Property: hue')
+						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+					}
+
+					// Set Saturation
+					eventName = "saturation"
+					eventUnit = null
+					eventValue = hsv[1]
+					currentValue = device.currentValue(eventName)
+					// if (currentValue == null || currentValue != eventValue) {
+						parent.logDebug('Updating Property: saturation')
+						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+					// }
+
+					// Set Temperature
+					eventName = "colorTemperature"
+					eventUnit = null
+					eventValue = null
+					currentValue = device.currentValue(eventName)
+					if (currentValue == null || currentValue != eventValue) {
+						parent.logDebug('Updating Property: colorTemperature')
+						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+					}
+				}
+            break
+
+            // Vacation Mode
+            case wyze_property_vacation_mode:
+                eventName = "vacationMode"
+                eventUnit = null
+                eventValue = property.value == "1" ? "true" : "false"
+                currentValue = device.currentValue(eventName)
+                if (currentValue == null || currentValue != eventValue) {
+                    parent.logDebug('Updating Property: vacationMode')
+                    parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+                }
+            break
+
+            
+        }
+    }
+}
+
+private def hexToHsv(String hex) {
+    if (hex[0] != '#') {
+        hex = '#' + hex
+    }
+	rgb = hubitat.helper.ColorUtils.hexToRGB(hex)
+	hsv = hubitat.helper.ColorUtils.rgbToHSV(rgb)
+    return hsv
+}
+
+private def String hsvToHexNoHash(Integer hue, Integer saturation, Integer level) {
 	rgb = hubitat.helper.ColorUtils.hsvToRGB([hue, saturation, level])
 	return hubitat.helper.ColorUtils.rgbToHEX(rgb).substring(1)
 }

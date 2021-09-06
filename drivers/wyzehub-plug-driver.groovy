@@ -24,13 +24,12 @@ public static String version()      {  return "v0.0.1"  }
 
 @Field static final String device_model = 'WLPP1CFH'
 
-@Field static final String wyze_property_push_notifications_enabled = 'P1'
 @Field static final String wyze_property_power = 'P3'
 @Field static final String wyze_property_device_online = 'P5'
 
 metadata {
 	definition(
-		name: "Wyze Plug", 
+		name: "WyzeHub Plug", 
 		namespace: "jakelehner", 
 		author: "Jake Lehner", 
 		importUrl: "https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/drivers/wyzehub-meshlight-driver.groovy"
@@ -48,6 +47,9 @@ metadata {
 
 void installed() {
     log.debug "installed()"
+
+	device.updateDataValue('deviceModel', device_model)
+
     initialize()
 }
 
