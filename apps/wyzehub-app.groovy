@@ -417,7 +417,7 @@ private def doSendDeviceEvent(com.hubitat.app.DeviceWrapper device, eventName, e
 	String descriptionText = "${device.displayName} ${eventName} is ${eventValue}${eventUnit ?: ''}"
    	logDebug(descriptionText)
 
-    if (eventUnit) {
+    if (eventValue && eventUnit) {
         eventValue += eventUnit
     }
 

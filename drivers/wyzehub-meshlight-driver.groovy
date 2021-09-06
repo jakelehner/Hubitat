@@ -39,6 +39,10 @@ public static String version()      {  return "v0.0.1"  }
  
 @Field static final String wyze_property_power_value_on = '1'
 @Field static final String wyze_property_power_value_off = '0'
+@Field static final String wyze_property_device_online_value_true = '1'
+@Field static final String wyze_property_device_online_value_false = '0'
+@Field static final String wyze_property_device_vacation_mode_true = '1'
+@Field static final String wyze_property_device_vacation_mode_false = '0'
 @Field static final String wyze_property_color_mode_value_ct = '2' 
 @Field static final String wyze_property_color_mode_value_rgb = '1' 
 
@@ -73,11 +77,10 @@ metadata {
 void installed() {
     parent.logDebug("installed()")
 
-	parent.logDebug("before: " + device.getDataValue('deviceModel'))
 	device.updateDataValue('deviceModel', device_model)
-	parent.logDebug("after: " + device.getDataValue('deviceModel'))
-
-    initialize()
+	
+    refresh()
+	initialize()
 }
 
 void updated() {
@@ -87,13 +90,6 @@ void updated() {
 
 void initialize() {
    parent.logDebug("initialize()")
-   Integer disableMinutes = 30
-
-// TODO?
-//    if (enableDebug) {
-//       parent.logDebug "Debug logging will be automatically disabled in ${disableMinutes} minutes"
-//       runIn(disableMinutes*60, debugOff)
-//    }
 }
 
 void parse(String description) {
@@ -207,12 +203,9 @@ def setHue(hue) {
 
 	// Must be between 0 and 100
 	hue = hue.min(100).max(0)
-	level = device.currentValue("level")
-	saturation = device.currentValue("saturation")
+	currentHsv = hexToHsv(device.currentValue('color'))
 
-	parent.logDebug([hue, saturation, level])
-
-	hex = hsvToHexNoHash(hue, saturation, level)
+	hex = hsvToHexNoHash(hue, currentHsv[1], currentHsv[2])
 
 	actions = [
 		[
@@ -233,13 +226,10 @@ def setSaturation(saturation) {
 	parent.logDebug("setSaturation() on device ${device.label}")
 
 	// Must be between 0 and 100
-	setSaturation = setSaturation.min(100).setSaturation(0)
-	hue = device.currentValue("hue")
-	level = device.currentValue("level")
+	saturation = saturation.min(100).max(0)
+	currentHsv = hexToHsv(device.currentValue('color'))
 
-	parent.logDebug([hue, saturation, level])
-
-	hex = hsvToHexNoHash(hue, saturation, level)
+	hex = hsvToHexNoHash(currentHsv[0], saturation, currentHsv[2])
 
 	actions = [
 		[
@@ -256,7 +246,7 @@ def setSaturation(saturation) {
 	])	
 }
 
-private void createDeviceEventsFromPropertyList(List propertyList) {
+void createDeviceEventsFromPropertyList(List propertyList) {
     parent.logDebug("createEventsFromPropertyList()")
 
     String eventName, eventUnit
@@ -273,11 +263,8 @@ private void createDeviceEventsFromPropertyList(List propertyList) {
                 eventName = "colorMode"
                 eventUnit = null
                 eventValue = deviceColorMode
-                currentValue = device.currentValue(eventName)
-                if (currentValue == null || currentValue != eventValue) {
-                    parent.logDebug('Updating Property: colorMode')
-                    parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-                }
+				parent.logDebug('Updating Property: colorMode')
+				parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
             }
         }
     }
@@ -289,24 +276,20 @@ private void createDeviceEventsFromPropertyList(List propertyList) {
             case wyze_property_power:
 				eventName = "switch"
                 eventUnit = null
-                eventValue = property.value == "1" ? "on" : "off"
-                currentValue = device.currentValue(eventName)
-				if (currentValue == null || currentValue != eventValue) {
-					parent.logDebug('Updating Property: switch')
-                    parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-                } 
+                eventValue = property.value == wyze_property_power_value_on ? "on" : "off"
+                
+				parent.logDebug('Updating Property: switch')
+				parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
             break
         
             // Device Online
             case wyze_property_device_online:
                 eventName = "online"
                 eventUnit = null
-                eventValue = property.value == "1" ? "true" : "false"
-                currentValue = device.currentValue(eventName)
-                if (currentValue == null || currentValue != eventValue) {
-                    parent.logDebug('Updating Property: online')
-                    parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-                }
+                eventValue = property.value == wyze_property_device_online_value_true ? "true" : "false"
+                
+				parent.logDebug('Updating Property: online')
+				parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
             break
 
             // Brightness
@@ -315,11 +298,8 @@ private void createDeviceEventsFromPropertyList(List propertyList) {
                 eventUnit = '%'
                 eventValue = property.value
                 
-                currentValue = device.currentValue(eventName)
-                if (currentValue == null || currentValue != eventValue) {
-                    parent.logDebug('Updating Property: level')
-                    parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-                }
+				parent.logDebug('Updating Property: level')
+				parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
             break
 
             // Color Temp
@@ -329,41 +309,35 @@ private void createDeviceEventsFromPropertyList(List propertyList) {
 					eventName = "colorTemperature"
 					eventUnit = '°K'
 					eventValue = property.value
-					currentValue = device.currentValue(eventName)
-					if (currentValue == null || currentValue != eventValue) {
-						parent.logDebug('Updating Property: colorTemperature')
-						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-					}
-
+					
+					parent.logDebug('Updating Property: colorTemperature')
+					parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+					
 					// Set HEX Color
 					eventName = "color"
 					eventUnit = null
 					eventValue = null
-					currentValue = device.currentValue(eventName)
-					if (currentValue == null || currentValue != eventValue) {
-						parent.logDebug('Updating Property: color')
-						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-					}
+					
+					parent.logDebug('Updating Property: color')
+					parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+					
 
 					// Set Hue Color
 					eventName = "hue"
 					eventUnit = null
 					eventValue = null
 					currentValue = device.currentValue(eventName)
-					if (currentValue == null || currentValue != eventValue) {
-						parent.logDebug('Updating Property: hue')
-						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-					}
-
+					
+					parent.logDebug('Updating Property: hue')
+					parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+					
 					// Set Saturation
 					eventName = "saturation"
 					eventUnit = null
 					eventValue = null
-					currentValue = device.currentValue(eventName)
-					if (currentValue == null || currentValue != eventValue) {
-						parent.logDebug('Updating Property: saturation')
-						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-					}
+					
+					parent.logDebug('Updating Property: saturation')
+					parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}   
             break
 
@@ -372,11 +346,9 @@ private void createDeviceEventsFromPropertyList(List propertyList) {
                 eventName = "rssi"
                 eventUnit = 'db'
                 eventValue = property.value
-                currentValue = device.currentValue(eventName)
-                if (currentValue == null || currentValue != eventValue) {
-                    parent.logDebug('Updating Property: rssi')
-                    parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-                }
+
+				parent.logDebug('Updating Property: rssi')
+				parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
             break
 
             // Vacation Mode
@@ -384,11 +356,9 @@ private void createDeviceEventsFromPropertyList(List propertyList) {
                 eventName = "vacationMode"
                 eventUnit = null
                 eventValue = property.value == "1" ? "true" : "false"
-                currentValue = device.currentValue(eventName)
-                if (currentValue == null || currentValue != eventValue) {
-                    parent.logDebug('Updating Property: vacationMode')
-                    parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-                }
+
+				parent.logDebug('Updating Property: vacationMode')
+				parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
             break
 
             // Color
@@ -399,11 +369,9 @@ private void createDeviceEventsFromPropertyList(List propertyList) {
 					eventName = "color"
 					eventUnit = null
 					eventValue = property.value
-					currentValue = device.currentValue(eventName)
-					if (currentValue == null || currentValue != eventValue) {
-						parent.logDebug('Updating Property: color')
-						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-					}
+
+					parent.logDebug('Updating Property: color')
+					parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 
 					hsv = hexToHsv(property.value)
 					parent.logDebug('hsv')
@@ -413,31 +381,25 @@ private void createDeviceEventsFromPropertyList(List propertyList) {
 					eventName = "hue"
 					eventUnit = null
 					eventValue = hsv[0]
-					currentValue = device.currentValue(eventName)
-					if (currentValue == null || currentValue != eventValue) {
-						parent.logDebug('Updating Property: hue')
-						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-					}
+
+					parent.logDebug('Updating Property: hue')
+					parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 
 					// Set Saturation
 					eventName = "saturation"
 					eventUnit = null
 					eventValue = hsv[1]
-					currentValue = device.currentValue(eventName)
-					// if (currentValue == null || currentValue != eventValue) {
-						parent.logDebug('Updating Property: saturation')
-						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-					// }
+
+					parent.logDebug('Updating Property: saturation')
+					parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 
 					// Set Temperature
 					eventName = "colorTemperature"
 					eventUnit = null
 					eventValue = null
-					currentValue = device.currentValue(eventName)
-					if (currentValue == null || currentValue != eventValue) {
-						parent.logDebug('Updating Property: colorTemperature')
-						parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-					}
+
+					parent.logDebug('Updating Property: colorTemperature')
+					parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
 
@@ -445,12 +407,9 @@ private void createDeviceEventsFromPropertyList(List propertyList) {
             case wyze_property_vacation_mode:
                 eventName = "vacationMode"
                 eventUnit = null
-                eventValue = property.value == "1" ? "true" : "false"
-                currentValue = device.currentValue(eventName)
-                if (currentValue == null || currentValue != eventValue) {
-                    parent.logDebug('Updating Property: vacationMode')
-                    parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-                }
+                eventValue = property.value == wyze_property_device_vacation_mode_true ? "true" : "false"
+				parent.logDebug('Updating Property: vacationMode')
+				parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
             break
 
             
@@ -467,7 +426,7 @@ private def hexToHsv(String hex) {
     return hsv
 }
 
-private def String hsvToHexNoHash(Integer hue, Integer saturation, Integer level) {
+private def String hsvToHexNoHash(hue, saturation, level) {
 	rgb = hubitat.helper.ColorUtils.hsvToRGB([hue, saturation, level])
 	return hubitat.helper.ColorUtils.rgbToHEX(rgb).substring(1)
 }
