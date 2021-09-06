@@ -62,6 +62,10 @@ void installed() {
 
 	device.updateDataValue('deviceModel', device_model)
 
+	// TODO Make Configurable
+	unschedule('refresh')
+	schedule('0/10 * * * * ? *', 'refresh')
+
     refresh()
 	initialize()
 }
@@ -86,6 +90,11 @@ def refresh() {
 	parent.apiGetDevicePropertyList(device.deviceNetworkId, device_model) { propertyList ->
 		createDeviceEventsFromPropertyList(propertyList)
 	}
+
+	// TODO Make Configurable
+	keepFresh = true
+	keepFreshSeconds = 10
+	runIn(keepFreshSeconds, 'refresh')
 }
 
 def on() {

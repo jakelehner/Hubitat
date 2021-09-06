@@ -69,6 +69,7 @@ metadata {
 		attribute "vacationMode", "bool"
 		attribute "online", "bool"
 		attribute "rssi", "number"
+		// attrubute "lastRefreshed", "date"
 
 	}
 
@@ -79,12 +80,19 @@ void installed() {
 
 	device.updateDataValue('deviceModel', device_model)
 	
-    refresh()
+    // TODO Make Configurable
+	unschedule('refresh')
+	schedule('0/10 * * * * ? *', 'refresh')
+	
+	refresh()
 	initialize()
 }
 
 void updated() {
    parent.logDebug("updated()")
+
+	unschedule('refresh')
+
    initialize()
 }
 
@@ -104,7 +112,6 @@ def refresh() {
 		createDeviceEventsFromPropertyList(propertyList)
 	}
 }
-
 
 def on() {
 	parent.logDebug("'On' Pressed for device ${device.label}")

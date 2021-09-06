@@ -524,9 +524,7 @@ def apiPost(String path, Map body = [], callback = {}) {
 
 	bodyJson = (new JsonBuilder(body)).toString()
 
-    logDebug(bodyJson)
-	
-	params = [
+    params = [
 		'uri'                : wyzeApiBaseUrl(),
 		'headers'            : wyzeRequestHeaders(),
 		'contentType' : 'application/json',
