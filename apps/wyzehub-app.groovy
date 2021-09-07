@@ -34,6 +34,14 @@ public static final String apiAppVersion() { return "2.19.14" }
    'default': [label: 'Unsupported Type', driver: null]
 ]
 
+@Field static final String log_level_debug   = '5'
+@Field static final String log_level_info    = '4'
+@Field static final String log_level_notice  = '3'
+@Field static final String log_level_warn    = '2'
+@Field static final String log_level_error   = '1'
+@Field static final String log_level_off     = '0'
+@Field static final String log_level_default = '4'
+
 String wyzeAuthBaseUrl() { return "https://auth-prod.api.wyze.com" }
 String wyzeApiBaseUrl() { return "https://api.wyzecam.com" }
 
@@ -91,7 +99,7 @@ def installed()
 
 	initialize()
 	
-	logDebug('installed() complete')
+	logNotice('App Installed')
 }
 
 def updated() 
@@ -129,20 +137,19 @@ def initialize()
 		}
 	}
 
-	// TODO
-	// runEvery5Minutes(checkDevices)
-
 }
 
 def uninstalled() 
 {
 	logDebug('uninstalled()')
 
-	logDebug("Deleting child devices...")
+	logNotice("Deleting child devices...")
 	getChildDevices().each { device->
-		logDebug("Deleting device: " + device.deviceNetworkId)
+		logInfo("Deleting device: " + device.deviceNetworkId)
 		deleteChildDevice(device.deviceNetworkId)
 	}
+
+	logNotice("Uninstalled")
 }
 
 //  -------
@@ -198,8 +205,15 @@ def pageMenu()
 
 		section('Advanced Options') 
    		{
-   			input 'logEnabled', 'bool', title: 'Enable Logging?', required: true, defaultValue: true
-			input 'debugEnabled', 'bool', title: 'Enable Debug Mode?', required: true, defaultValue: false
+			logLevelOptions = [
+				'5' : 'Debug',
+				'4' : 'Info',
+				'3' : 'Notice',
+				'2' : 'Warn',
+				'1' : 'Error',
+				'0' : 'Off',
+			]
+			input name: "logLevel", type: "enum", title: "Log Level", required: true, defaultValue: '4', options: logLevelOptions
 		}       
       	displayFooter()
 	}	
@@ -207,6 +221,7 @@ def pageMenu()
 
 def pageAuthSettings() {
 	logDebug('pageAuthSettings()')
+	
 	return dynamicPage(
 		name: 'pageAuthSettings', 
 		title: "${app.label} Account Info", 
@@ -339,7 +354,7 @@ try {
 		state.statusText	 = "Success"
 	}
 } catch (Exception e) {
-	logDebug("Login Failed with Exception: ${e}")
+	logError("Login Failed with Exception: ${e}")
 	state.access_token   = null
 	state.refresh_token  = null
 	state.user_id        = null
@@ -393,13 +408,13 @@ private def addDevices(List deviceMacs) {
 	logDebug('addDevices()')
 
 	deviceMacs.each { mac ->
-		logDebug("Add device with mac ${mac}")
 		Map deviceFromCache = getDeviceFromCache(mac)
 		if (deviceFromCache) {
-			logDebug('Found Device in Cache. Adding...')
+			logInfo("Adding device type ${deviceFromCache.product_type} with mac ${mac}")
+		
 			driver = driverMap[deviceFromCache.product_type].driver
 			if (!driver) {
-				logDebug("Driver not found. Unsupported Device Type: ${deviceFromCache.product_type}")
+				logError("Driver not found. Unsupported Device Type: ${deviceFromCache.product_type}")
 				return
 			}
 			deviceProps = [
@@ -408,17 +423,14 @@ private def addDevices(List deviceMacs) {
 				deviceModel: (deviceFromCache.product_model)
 			]
 			addChildDevice(childNamespace, driver, deviceFromCache.mac, deviceProps)
-		} else { 
-			logDebug('DID NOT find Device in Cache')
 		}
-
 	}
 }
 
 private def doSendDeviceEvent(com.hubitat.app.DeviceWrapper device, eventName, eventValue, eventUnit) {
 	logDebug("doSendDeviceEvent()")
 	logDebug(device)
-	logDebug([eventName, eventValue, eventUnit])
+	
 
 	String descriptionText = "${device.displayName} ${eventName} is ${eventValue}${eventUnit ?: ''}"
    	logDebug(descriptionText)
@@ -461,9 +473,9 @@ def apiGetDevicePropertyList(String deviceMac, String deviceModel, callback = nu
 	}
 }
 
-def apiRunAction(String deviceMac, String deviceModel, String actionKey, callback = null) {
+def apiRunAction(String deviceMac, String deviceModel, String actionKey, closure = null) {
 	logDebug("apiRunAction()")
-	logDebug(['mac': deviceMac, 'model': deviceModel])
+	logDebug(['mac': deviceMac, 'model': deviceModel, 'actionKey': actionKey])
 
 	requestBody = wyzeRequestBody() + [
 		'sv': '011a6b42d80a4f32b4cc24bb721c9c96', 
@@ -480,8 +492,7 @@ def apiRunAction(String deviceMac, String deviceModel, String actionKey, callbac
 
 def apiRunActionList(String deviceMac, String deviceModel, List actionList, callback = null) {
 	logDebug("apiRunActionList()")
-	logDebug(deviceMac)
-	logDebug(deviceModel)
+	logDebug(['mac': deviceMac, 'model': deviceModel, 'actionList': actionList])
 
 	List apiActionList = [
 		[
@@ -511,6 +522,7 @@ def apiRunActionList(String deviceMac, String deviceModel, List actionList, call
 
 def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId, value, callback = null) {
 	logDebug("setDeviceProperty()")
+	logDebug(['mac': deviceMac, 'model': deviceModel, 'propertyId': propertyId, 'value': value])
 
 	requestBody = wyzeRequestBody() + [
 		'sv': '44b6d5640c4d4978baba65c8ab9a6d6e',
@@ -531,12 +543,11 @@ def apiPost(String path, Map body = [], callback = {}) {
 	bodyJson = (new JsonBuilder(body)).toString()
 
     params = [
-		'uri'                : wyzeApiBaseUrl(),
-		'headers'            : wyzeRequestHeaders(),
+		'uri'         : wyzeApiBaseUrl(),
+		'headers'     : wyzeRequestHeaders(),
 		'contentType' : 'application/json',
-		// 'requestContentType' : 'application/json; charset=utf-8',
-		'path'               : path,
-		'body'               : bodyJson
+		'path'        : path,
+		'body'        : bodyJson
 	]
 
 	try {
@@ -550,7 +561,7 @@ def apiPost(String path, Map body = [], callback = {}) {
 			callback(response.data) 
 		}
 	} catch (Exception e) {
-		logDebug("API Call to ${params.uri}${params.path} failed with Exception: ${e}")
+		logError("API Call to ${params.uri}${params.path} failed with Exception: ${e}")
 		return false
 	}
 }
@@ -580,24 +591,43 @@ void appButtonHandler(btn) {
    }
 }
 
-def debugOff()
-{
-	logWarn("Debug logging disabled...")
-	app?.updateSetting("debugEnabled",[value:"false",type:"bool"])
-}
+// def debugOff()
+// {
+// 	logWarn("Debug logging disabled...")
+// 	app?.updateSetting("debugEnabled",[value:"false",type:"bool"])
+// }
 
 private void logDebug(message) {
-   if (settings.logEnabled && settings.debugEnabled) log.debug("[${app.label}] " + message)
+	level = settings.logLevel ?: log_level_default
+	if (level >= log_level_debug) {
+		log.debug("[${app.label}] " + message)
+	}
 }
 
 private void logInfo(message) {
-   if (settings.logEnabled) log.info("[${app.label}] " + message)
+	level = settings.logLevel ?: log_level_default
+	if (level >= log_level_info) {
+		log.info("[${infoapp.label}] " + message)
+	}
+}
+
+private void logNotice(message) {
+	level = settings.logLevel ?: log_level_default
+	if (level >= log_level_notice) {
+		log.notice("[${infoapp.label}] " + message)
+	}
 }
 
 private void logWarn(message) {
-   if (settings.logEnabled) log.warn("[${app.label}] " + message)
+	level = settings.logLevel ?: log_level_default
+	if (level >= log_level_warn) {
+		log.WARRANTIES("[${infoapp.label}] " + message)
+	}
 }
 
 private void logError(message) {
-   if (settings.logEnabled) log.error("[${app.label}] " + message)
+	level = settings.logLevel ?: log_level_default
+	if (level >= log_level_error) {
+		log.error("[${infoapp.label}] " + message)
+	}
 }

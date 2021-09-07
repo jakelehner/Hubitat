@@ -80,24 +80,20 @@ void installed() {
 
 	device.updateDataValue('deviceModel', device_model)
 	
-    // TODO Make Configurable
-	unschedule('refresh')
-	schedule('0/10 * * * * ? *', 'refresh')
-	
 	refresh()
 	initialize()
 }
 
 void updated() {
-   parent.logDebug("updated()")
-
-	unschedule('refresh')
-
-   initialize()
+    parent.logDebug("updated()")
+    initialize()
 }
 
 void initialize() {
-   parent.logDebug("initialize()")
+    parent.logDebug("initialize()")
+
+    unschedule('refresh')
+    schedule('0/10 * * * * ? *', 'refresh')
 }
 
 void parse(String description) {
@@ -107,14 +103,14 @@ void parse(String description) {
 def getThisCopyright(){"&copy; 2021 Jake Lehner"}
 
 def refresh() {
-	parent.logDebug("Refresh device ${device.label}")
+	parent.logNotice("Refresh device ${device.label}")
 	parent.apiGetDevicePropertyList(device.deviceNetworkId, device.getDataValue('deviceModel')) { propertyList ->
 		createDeviceEventsFromPropertyList(propertyList)
 	}
 }
 
 def on() {
-	parent.logDebug("'On' Pressed for device ${device.label}")
+	parent.logNotice("'On' Pressed for device ${device.label}")
 	parent.apiRunAction(device.deviceNetworkId, device_model, 'power_on')
 	createDeviceEventsFromPropertyList([
 		['pid': wyze_property_power, 'value': wyze_property_power_value_on]
@@ -122,7 +118,7 @@ def on() {
 }
 
 def off() {
-	parent.logDebug("'Off' Pressed for device ${device.label}")
+	parent.logNotice("'Off' Pressed for device ${device.label}")
 	parent.apiRunAction(device.deviceNetworkId, device_model, 'power_off')
 	createDeviceEventsFromPropertyList([
 		['pid': wyze_property_power, 'value': wyze_property_power_value_off]
@@ -130,7 +126,7 @@ def off() {
 }
 
 def setLevel(level, durationSecs = null) {
-	parent.logDebug("setLevel() on device ${device.label}")
+	parent.logNotice("setLevel() on device ${device.label}")
 
 	level = level.min(100).max(0)
 
@@ -148,7 +144,7 @@ def setLevel(level, durationSecs = null) {
 }
 
 def setColorTemperature(colortemperature, level = null, durationSecs = null) {
-	parent.logDebug("setColorTemperature() on device ${device.label}")
+	parent.logNotice("setColorTemperature() on device ${device.label}")
 
 	// Valid range 1800-6500
 	colortemperature = colortemperature.min(6500).max(1800)
@@ -184,7 +180,7 @@ def setColorTemperature(colortemperature, level = null, durationSecs = null) {
 }
 
 def setColor(colormap) {
-	parent.logDebug("setColor() on device ${device.label}")
+	parent.logNotice("setColor() on device ${device.label}")
 	
 	hex = hsvToHexNoHash(colormap.hue, colormap.saturation, colormap.level)
 	
@@ -206,7 +202,7 @@ def setColor(colormap) {
 }
 
 def setHue(hue) {
-	parent.logDebug("setHue() on device ${device.label}")
+	parent.logNotice("setHue() on device ${device.label}")
 
 	// Must be between 0 and 100
 	hue = hue.min(100).max(0)
@@ -230,7 +226,7 @@ def setHue(hue) {
 }
 
 def setSaturation(saturation) {
-	parent.logDebug("setSaturation() on device ${device.label}")
+	parent.logNotice("setSaturation() on device ${device.label}")
 
 	// Must be between 0 and 100
 	saturation = saturation.min(100).max(0)

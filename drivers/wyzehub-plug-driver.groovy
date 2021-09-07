@@ -86,7 +86,7 @@ void parse(String description) {
 def getThisCopyright(){"&copy; 2021 Jake Lehner"}
 
 def refresh() {
-	parent.logDebug("Refresh device ${device.label}")
+	parent.logNotice("Refresh device ${device.label}")
 	parent.apiGetDevicePropertyList(device.deviceNetworkId, device_model) { propertyList ->
 		createDeviceEventsFromPropertyList(propertyList)
 	}
@@ -98,7 +98,7 @@ def refresh() {
 }
 
 def on() {
-	parent.logDebug("'On' Pressed for device ${device.label}")
+	parent.logNotice("'On' Pressed for device ${device.label}")
 	parent.apiRunAction(device.deviceNetworkId, device_model, 'power_on')
 	createDeviceEventsFromPropertyList([
 		['pid': wyze_property_power, 'value': wyze_property_power_value_on]
@@ -106,7 +106,7 @@ def on() {
 }
 
 def off() {
-	parent.logDebug("'Off' Pressed for device ${device.label}")
+	parent.logNotice("'Off' Pressed for device ${device.label}")
 	parent.apiRunAction(device.deviceNetworkId, device_model, 'power_off')
 	createDeviceEventsFromPropertyList([
 		['pid': wyze_property_power, 'value': wyze_property_power_value_off]
