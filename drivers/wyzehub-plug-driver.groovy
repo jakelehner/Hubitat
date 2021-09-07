@@ -33,8 +33,8 @@ public static String version()      {  return "v0.0.1"  }
 @Field static final String wyze_property_power_value_off = '0'
 @Field static final String wyze_property_device_online_value_true = '1'
 @Field static final String wyze_property_device_online_value_false = '0'
-@Field static final String wyze_property_device_vacation_mode_true = '1'
-@Field static final String wyze_property_device_vacation_mode_false = '0'
+@Field static final String wyze_property_device_vacation_mode_value_true = '1'
+@Field static final String wyze_property_device_vacation_mode_value_false = '0'
 
 metadata {
 	definition(
@@ -99,14 +99,18 @@ def refresh() {
 
 def on() {
 	parent.logDebug("'On' Pressed for device ${device.label}")
-	parent.apiSetDeviceProperty(device.deviceNetworkId, device_model, wyze_property_power, 1)
-	sendEvent(name: "switch", value: "on")
+	parent.apiRunAction(device.deviceNetworkId, device_model, 'power_on')
+	createDeviceEventsFromPropertyList([
+		['pid': wyze_property_power, 'value': wyze_property_power_value_on]
+	])
 }
 
 def off() {
 	parent.logDebug("'Off' Pressed for device ${device.label}")
-	parent.apiSetDeviceProperty(device.deviceNetworkId, device_model, wyze_property_power, 0)
-	sendEvent(name: "switch", value: "off")
+	parent.apiRunAction(device.deviceNetworkId, device_model, 'power_off')
+	createDeviceEventsFromPropertyList([
+		['pid': wyze_property_power, 'value': wyze_property_power_value_off]
+	])
 }
 
 void createDeviceEventsFromPropertyList(List propertyList) {
@@ -169,7 +173,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
             case wyze_property_vacation_mode:
                 eventName = "vacationMode"
                 eventUnit = null
-                eventValue = property.value == wyze_property_device_vacation_mode_true ? "true" : "false"
+                eventValue = property.value == wyze_property_device_vacation_mode_value_true ? "true" : "false"
 
 				parent.logDebug('Updating Property: vacationMode')
 				parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)

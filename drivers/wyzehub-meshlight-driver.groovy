@@ -41,8 +41,8 @@ public static String version()      {  return "v0.0.1"  }
 @Field static final String wyze_property_power_value_off = '0'
 @Field static final String wyze_property_device_online_value_true = '1'
 @Field static final String wyze_property_device_online_value_false = '0'
-@Field static final String wyze_property_device_vacation_mode_true = '1'
-@Field static final String wyze_property_device_vacation_mode_false = '0'
+@Field static final String wyze_property_device_vacation_mode_value_true = '1'
+@Field static final String wyze_property_device_vacation_mode_value_false = '0'
 @Field static final String wyze_property_color_mode_value_ct = '2' 
 @Field static final String wyze_property_color_mode_value_rgb = '1' 
 
@@ -201,7 +201,7 @@ def setColor(colormap) {
 
 	createDeviceEventsFromPropertyList([
 		['pid': wyze_property_color_mode, 'value': wyze_property_color_mode_value_rgb],
-		['pid': wyze_property_color, 'value': hex]	
+		['pid': wyze_property_color, 'value': hex]
 	])
 }
 
@@ -319,32 +319,6 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 					
 					parent.logDebug('Updating Property: colorTemperature')
 					parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-					
-					// Set HEX Color
-					eventName = "color"
-					eventUnit = null
-					eventValue = null
-					
-					parent.logDebug('Updating Property: color')
-					parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-					
-
-					// Set Hue Color
-					eventName = "hue"
-					eventUnit = null
-					eventValue = null
-					currentValue = device.currentValue(eventName)
-					
-					parent.logDebug('Updating Property: hue')
-					parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-					
-					// Set Saturation
-					eventName = "saturation"
-					eventUnit = null
-					eventValue = null
-					
-					parent.logDebug('Updating Property: saturation')
-					parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}   
             break
 
@@ -362,7 +336,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
             case wyze_property_vacation_mode:
                 eventName = "vacationMode"
                 eventUnit = null
-                eventValue = property.value == "1" ? "true" : "false"
+                eventValue = property.value == wyze_property_device_vacation_mode_value_true ? "true" : "false"
 
 				parent.logDebug('Updating Property: vacationMode')
 				parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
@@ -398,14 +372,6 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 					eventValue = hsv[1]
 
 					parent.logDebug('Updating Property: saturation')
-					parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-
-					// Set Temperature
-					eventName = "colorTemperature"
-					eventUnit = null
-					eventValue = null
-
-					parent.logDebug('Updating Property: colorTemperature')
 					parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
