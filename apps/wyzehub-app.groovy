@@ -137,6 +137,12 @@ def initialize()
 def uninstalled() 
 {
 	logDebug('uninstalled()')
+
+	logDebug("Deleting child devices...")
+	getChildDevices().each { device->
+		logDebug("Deleting device: " + device.deviceNetworkId)
+		deleteChildDevice(device.deviceNetworkId)
+	}
 }
 
 //  -------
