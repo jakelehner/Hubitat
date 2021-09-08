@@ -29,7 +29,8 @@ public static final String apiAppVersion() { return "2.19.14" }
 
 @Field static final String childNamespace = "jakelehner" 
 @Field static final Map groupDriverMap = [
-   8: [label: 'Color Bulb Group', driver: 'WyzeHub Color Bulb Group'],
+    5: [label: 'Plug Group', driver: 'WyzeHub Plug Group'],
+    //8: [label: 'Color Bulb Group', driver: 'WyzeHub Color Bulb Group'],
 ]
 @Field static final Map driverMap = [
    'MeshLight': [label: 'Color Bulb', driver: 'WyzeHub Color Bulb'],
@@ -87,9 +88,8 @@ preferences
 {
    page(name: 'pageMenu')
    page(name: 'pageAuthSettings')
-   page(name: 'pageImportDevices')
-   page(name: 'pageDoImportDevices')
    page(name: 'pageSelectDevices')
+   page(name: 'pageSelectDeviceGroups')
 }
 
 //  ---------------------
@@ -167,11 +167,16 @@ def pageMenu()
 {
 	logDebug('pageMenu()')
 	
-	if (settings["addDevices"]) {
+	if (settings["devicesToAdd"]) {
 		logDebug("New devices selected. Creating...")
-		logDebug(settings["addDevices"])
-		addDevices(settings["addDevices"])
-		app.removeSetting('addDevices')
+		addDevices(settings["devicesToAdd"])
+		app.removeSetting('devicesToAdd')
+	}
+
+    if (settings["deviceGroupsToAdd"]) {
+		logDebug("New groups selected. Creating...")
+        addDeviceGroups(settings["deviceGroupsToAdd"])
+		app.removeSetting('deviceGroupsToAdd')
 	}
 
 	initialize()
@@ -199,13 +204,11 @@ def pageMenu()
 		}
 
 		section("") {
-			href(name: 'hrefImportDevices', title: 'Import Devices',
-               description: '', page: 'pageImportDevices', image: '')
+			href(name: 'hrefSelectDeviceGroups', title: 'Select Device Groups',
+               description: '', page: 'pageSelectDeviceGroups', image: '')
 			href(name: 'hrefSelectDevices', title: 'Select Devices',
                description: '', page: 'pageSelectDevices', image: '')
-        //  href(name: 'hrefSelectGroups', title: 'Select Groups',
-        //        description: '', page: 'pageSelectGroups')
-			href(name: 'hrefAuthSettings', title: 'Configure Login Info',
+        	href(name: 'hrefAuthSettings', title: 'Configure Login Info',
 				description: '', page: 'pageAuthSettings')
         
       }
@@ -215,7 +218,6 @@ def pageMenu()
 			logLevelOptions = [
 				'5' : 'Debug',
 				'4' : 'Info',
-				'3' : 'Notice',
 				'2' : 'Warn',
 				'1' : 'Error',
 				'0' : 'Off',
@@ -254,168 +256,130 @@ def pageImportDevices() {
 		name: 'pageImportDevices', 
 		title: "", 
 		install: false, 
-		uninstall: true, 
+		uninstall: false, 
 		refreshInterval: 0,
 		nextPage: 'pageDoImportDevices'
 	) {
 		section(getFormat('title', "${app.label} - Import Devices")) {
-			paragraph("Click net import <scrstrongipt>all</strong> supported devices and groups from Wyze...")
+			paragraph("Click net import <strong>all</strong> supported devices and groups from Wyze...")
 		}
 		
 	}
 }
-	
-def pageDoImportDevices() {
-	logDebug('pageDoImportDevices()')
 
-	updateDeviceCache() 
+def pageSelectDeviceGroups() {
+    logDebug('pageSelectDeviceGroups()')
 	
-	// Delete Existing Devices
-	getChildDevices().each { device -> 
-		logInfo("Deleting device: " + device.deviceNetworkId)
-		deleteChildDevice(device.deviceNetworkId)
+	updateDeviceCache() { response ->
+		deviceCache = response
 	}
-
-	deviceGroupsCache = getDeviceGroupListFromCache()
-	deviceCache = getDeviceListFromCache()
-
-	logDebug('Processing device Groups...')
-	
-	// Create Device Groups & Devices
-	createdDeviceGroups = [:]
-	deviceGroupsCache.each { mac, group ->
-		groupDriver = groupDriverMap[group.group_type_id]
-
-		if (!groupDriver) {
-			logDebug("Unsupported Group Type: ${group.group_type_id}")
-			return;
-		}
-
-		networkId = group.group_type_id + '.' + group.group_id
-		existingGroupDevice = getChildDevice(networkId)
-
-		if (existingGroup) {
-			logDebug("Group already exists: ${networkId}")
-			createdDeviceGroups[existingGroup.deviceNetworkId: existingGroupDevice]
-			return;
-		}
-
-		logDebug("Creating Group: ${networkId}")
-		deviceProps = [
-			name: groupDriver.label, 
-			label: group.group_name
-		]
-		newGroupDevice = addChildDevice(childNamespace, groupDriver.driver, networkId, deviceProps)
-		createdDeviceGroups[newGroupDevice.deviceNetworkId: newGroupDevice]
-
 		
-	}
+	List newGroups = []
+	List unsupportedGroups = []
+	
+    if (deviceCache.groups) {
+		deviceCache.groups.each { mac, group ->
+			groupType = groupDriverMap[group.group_type_id]
+			networkId = generateGroupNetworkId(group)
 
-	// TODO Loop through device groups and remove any existing devices that don't match
+			if (getChildDevice(networkId)) {
+				logDebug("${group.group_name} (${networkId}) already exists. Skipping...")
+				return
+			}
 
-	// TODO Add new devices
-	createdDeviceGroups.each { networkId, groupDevice ->
+			if(!groupType) {
+				logDebug("${group.group_name} (${networkId}) unsupported. Skipping...")
+				unsupportedGroups << group
+				return
+			} 
+			
+			logDebug("${group.group_name} (${networkId}) found. Adding to selection list...")
+			
+			Map newGroup = [:]
+			newGroup << [(group.group_id): "[${groupType.label}] ${group.group_name}"]
+			newGroups << newGroup
+		}
 
+		// Sort
+		newGroups = newGroups.sort { a, b ->
+			a.entrySet().iterator().next()?.value <=> b.entrySet().iterator().next()?.value
+		}
+		unsupportedGroups = unsupportedGroups.sort { it.value }
 
 	}
 
 	return dynamicPage(
-		name: 'pageDoImportDevices', 
-		title: "", 
-		install: false, 
-		uninstall: true, 
+		name: 'pageSelectDeviceGroups',
+		title: "${app.label} Device Group Selection",
+		install: false,
+		uninstall: false,
 		refreshInterval: 0,
 		nextPage: 'pageMenu'
 	) {
-		section(getFormat('title', "${app.label} - Import Devices")) {
-			paragraph("Done?")
+        
+        section() {
+            paragraph("This page will list any <strong>new</strong> supported device groups.")
+        }
+		
+		if (!newGroups) {
+			section("No New Device Groups Found...") {
+				input(name: "btnDeviceRefresh", type: "button", title: "Refresh", submitOnChange: true)
+			}
+		} else {
+			section(getFormat('title', 'Add Device Groups')) {
+				input(name: "deviceGroupsToAdd", type: "enum", title: "Select Device Groups to add:",
+					submitOnChange: false, multiple: true, options: newGroups)
+			}
 		}
-		
-	}
 
+		if(unsupportedGroups) {
+			section(getFormat('title', 'Unsupported Device Groups')) {
+				unsupportedGroups.each{ group ->
+					paragraph " - [${group.group_type_id}] ${group.group_name}"
+				}
+			}
+		}
 
-	// List newDevices = []
-	// List unsupportedDevices = []
-	// Map unclaimedDevices = [:];
-
-	// if (deviceList) {
-	// 	logDebug('pageSelectDevices(): process device list')
-		
-	// 	deviceList.each { mac, device ->
-	// 		productType = driverMap[device.product_type]
-	// 		childDeviceExists = getChildDevice(device.mac)
-	// 		if(!productType) {
-	// 			unsupportedDevices << device
-	// 		} else if (productType && !childDeviceExists) {
-    //            Map newDevice = [:]
-    //            newDevice << [(device.mac): "[${productType.label}] ${device.nickname}"]
-    //            newDevices << newDevice
-    //         }
-	// 	}
-
-	// 	// Sort
-	// 	newDevices = newDevices.sort { a, b ->
-	// 		a.entrySet().iterator().next()?.value <=> b.entrySet().iterator().next()?.value
-	// 	}
-	// 	unsupportedDevices = unsupportedDevices.sort { it.value }
-	// }
-
-	// return dynamicPage(
-	// 	name: 'pageSelectDevices', 
-	// 	title: "${app.label} Device Selection", 
-	// 	install: false, 
-	// 	uninstall: true, 
-	// 	refreshInterval: 0,
-	// 	nextPage: 'pageMenu'
-	// ) {
-		
-	// 	if (!deviceList) {
-	// 		section("No New Devices Found...") {            
-	// 			input(name: "btnDeviceRefresh", type: "button", title: "Refresh", submitOnChange: true)
-	// 		}
-	// 	} else {
-
-	// 		section(getFormat('title', 'Add Devices')) {
-	// 			input(name: "addDevices", type: "enum", title: "Select Groups and Devices to add:",
-	// 				submitOnChange: false, multiple: true, options: newDevices)
-	// 		}
-	// 	}
-
-	// 	if(unsupportedDevices) {
-	// 		section(getFormat('title', 'Unsupported Devices')) {
-	// 			unsupportedDevices.each{ device ->
-	// 				paragraph " - [${device.product_type}] ${device.nickname}"
-	// 			}
-	// 		}
-	// 	}
-
-   	// 	displayFooter()
-	// }	
+   		displayFooter()
+	}	
 }
 
 def pageSelectDevices() {
 	logDebug('pageSelectDevices()')
 	
-	updateDeviceCache() 
-	deviceList = getDeviceListFromCache()
-	
+	updateDeviceCache() { response ->
+		deviceCache = response
+	}
+		
 	List newDevices = []
 	List unsupportedDevices = []
 	Map unclaimedDevices = [:];
 
-	if (deviceList) {
-		logDebug('pageSelectDevices(): process device list')
-		
-		deviceList.each { mac, device ->
+	if (deviceCache.devices) {
+		deviceCache.devices.each { mac, device ->
 			productType = driverMap[device.product_type]
-			childDeviceExists = getChildDevice(device.mac)
+			
+			if (getChildDevice(device.mac)) {
+				logDebug("${device.nickname} (${device.mac}) already exists. Skipping...")
+				return
+			}
+
+			if (deviceCache.groupDeviceMacs.contains(device.mac)) {
+				logDebug("${device.nickname} (${device.mac}) belongs to a group. Skipping...")
+				return
+			}
+			
 			if(!productType) {
+				logDebug("${device.nickname} (${device.mac}) unsupported. Skipping...")
 				unsupportedDevices << device
-			} else if (productType && !childDeviceExists) {
-               Map newDevice = [:]
-               newDevice << [(device.mac): "[${productType.label}] ${device.nickname}"]
-               newDevices << newDevice
-            }
+				return
+			} 
+			
+			logDebug("${device.nickname} (${device.mac}) found. Adding to selection list...")
+			
+			Map newDevice = [:]
+			newDevice << [(device.mac): "[${productType.label}] ${device.nickname}"]
+			newDevices << newDevice
 		}
 
 		// Sort
@@ -423,25 +387,29 @@ def pageSelectDevices() {
 			a.entrySet().iterator().next()?.value <=> b.entrySet().iterator().next()?.value
 		}
 		unsupportedDevices = unsupportedDevices.sort { it.value }
+
 	}
 
 	return dynamicPage(
-		name: 'pageSelectDevices', 
-		title: "${app.label} Device Selection", 
-		install: false, 
-		uninstall: true, 
+		name: 'pageSelectDevices',
+		title: "${app.label} Device Selection",
+		install: false,
+		uninstall: false,
 		refreshInterval: 0,
 		nextPage: 'pageMenu'
 	) {
+
+        section() {
+            paragraph('This page will list any <strong>new</strong> devices that <strong>do not belong to a device group</strong>.')
+        }
 		
-		if (!deviceList) {
-			section("No New Devices Found...") {            
+		if (!newDevices) {
+			section("No New Devices Found...") {
 				input(name: "btnDeviceRefresh", type: "button", title: "Refresh", submitOnChange: true)
 			}
 		} else {
-
 			section(getFormat('title', 'Add Devices')) {
-				input(name: "addDevices", type: "enum", title: "Select Groups and Devices to add:",
+				input(name: "devicesToAdd", type: "enum", title: "Select Devices to add:",
 					submitOnChange: false, multiple: true, options: newDevices)
 			}
 		}
@@ -460,7 +428,7 @@ def pageSelectDevices() {
 
 def displayFooter() {
 	section{
-	   paragraph getFormat("line")
+		paragraph getFormat("line")
 		paragraph "<div style='color:#1A77C9;text-align:center;font-weight:small;font-size:9px'>Developed by: Jake<br/>Version Status: $state.Status<br>Current Version: ${version()} -  ${thisCopyright}</div>"
     }
 }
@@ -524,17 +492,25 @@ private def updateDeviceCache(Closure closure = null) {
 	logDebug("updateDeviceCache()")
 	state.deviceCache = [
 		'groups': [:],
-		'devices': [:]
+		'devices': [:],
+		'groupDeviceMacs': []
 	]
 	requestBody = wyzeRequestBody() + ['sv': 'c417b62d72ee44bf933054bdca183e77']
 	apiPost('/app/v2/home_page/get_object_list', requestBody) { response ->
 
 		response.data.device_group_list.each { deviceGroup ->
 			state.deviceCache['groups'][deviceGroup.group_id] = deviceGroup
+			deviceGroup.device_list.each { 
+				state.deviceCache['groupDeviceMacs'] << it.device_mac
+			}
 		}
 
 		response.data.device_list.each { device ->
 			state.deviceCache['devices'][device.mac] = device
+		}
+
+		if(closure) {
+			closure(state.deviceCache)
 		}
 	}
 }
@@ -547,12 +523,62 @@ private def Map getDeviceFromCache(String mac) {
 	return state.deviceCache['devices'][mac]
 }
 
+private def Map getDeviceGroupFromCache(String id) {
+	return state.deviceCache['groups'][id]
+}
+
 private def Map getDeviceListFromCache() {
 	return state.deviceCache['devices']
 }
 
 private def Map getDeviceGroupListFromCache() {
 	return state.deviceCache['groups']
+}
+
+private def addDeviceGroups(List deviceGroupIds) {
+	logDebug('addDeviceGroups()')
+
+	deviceGroupIds.each { deviceGroupId ->
+		Map deviceGroupFromCache = getDeviceGroupFromCache(deviceGroupId)
+        
+		if (deviceGroupFromCache) {
+			logInfo("Adding device group ${deviceGroupFromCache.group_name} with id ${deviceGroupFromCache.id}")
+		
+			driver = groupDriverMap[deviceGroupFromCache.group_type_id].driver
+			if (!driver) {
+				logError("Driver not found. Unsupported Device Group Type: ${deviceGroupFromCache.group_type_id}")
+				return
+			}
+
+            networkId = generateGroupNetworkId(deviceGroupFromCache)
+			deviceProps = [
+				name: driver, 
+				label: deviceGroupFromCache.group_name,
+			]
+			groupDevice = addChildDevice(childNamespace, driver, networkId, deviceProps)
+            
+            // Add Child Devices
+            deviceGroupFromCache.device_list.each { device ->
+                mac = device.device_mac
+                Map deviceFromCache = getDeviceFromCache(mac)
+                if (deviceFromCache) {
+                    logInfo("Adding device group child device device type ${deviceFromCache.product_type} with mac ${mac}")
+                
+                    driver = driverMap[deviceFromCache.product_type].driver
+                    if (!driver) {
+                        logError("Driver not found. Unsupported Device Type: ${deviceFromCache.product_type}")
+                        return
+                    }
+                    deviceProps = [
+                        name: (driver), 
+                        label: (deviceFromCache.nickname),
+                        deviceModel: (deviceFromCache.product_model)
+                    ]
+                    groupDevice.addChildDevice(childNamespace, driver, deviceFromCache.mac, deviceProps)
+                }
+            }
+		}
+	}
 }
 
 private def addDevices(List deviceMacs) {
@@ -581,7 +607,6 @@ private def addDevices(List deviceMacs) {
 private def doSendDeviceEvent(com.hubitat.app.DeviceWrapper device, eventName, eventValue, eventUnit) {
 	logDebug("doSendDeviceEvent()")
 	logDebug(device)
-	
 
 	String descriptionText = "${device.displayName} ${eventName} is ${eventValue}${eventUnit ?: ''}"
    	logDebug(descriptionText)
@@ -608,23 +633,23 @@ private def doSendDeviceEvent(com.hubitat.app.DeviceWrapper device, eventName, e
 	sendEvent(device, eventData)
 }
 
-def apiGetDevicePropertyList(String deviceMac, String deviceModel, callback = null) {
+def apiGetDevicePropertyList(String deviceMac, String deviceModel, Closure closure = {}}) {
 	logDebug("apiGetDevicePropertyList()")
 	
 	requestBody = wyzeRequestBody() + [
 		'sv': 'c417b62d72ee44bf933054bdca183e77',
-		"device_mac": deviceMac,
-    	"device_model": deviceModel
+		'device_mac': deviceMac,
+    	'device_model': deviceModel
 	]
 
 	apiPost('/app/v2/device/get_property_list', requestBody) { response ->
-		if(callback) {
-            callback(response.data['property_list'] ?: [])
+		if(closure) {
+            closure(response.data['property_list'] ?: [])
         }
 	}
 }
 
-def apiRunAction(String deviceMac, String deviceModel, String actionKey, closure = null) {
+def apiRunAction(String deviceMac, String deviceModel, String actionKey, closure = {}}) {
 	logInfo("apiRunAction()")
 	logInfo(['mac': deviceMac, 'model': deviceModel, 'actionKey': actionKey])
 
@@ -703,6 +728,13 @@ def apiPost(String path, Map body = [], Closure closure) {
 
 	try {
 		httpPost(params) { response -> 
+			if (response.data.code == "2001") {
+				// TODO - reauthenticate
+				logError("apiPost error! AccessTokenError")
+                logDebug(response.data)
+				throw new Exception("Invalid Response Data Code: ${response.data.code}")
+			}
+
 			if (response.data.code != "1") {
 				logError("apiPost error!")
                 logDebug(response.data)
@@ -720,6 +752,10 @@ private String getPhoneId() {
 		state.phone_id = randomUUID() as String
 	}
 	return state.phone_id
+}
+
+private String generateGroupNetworkId(Map wyzeGroupDetails) {
+    return wyzeGroupDetails.group_type_id + '.' + wyzeGroupDetails.group_id
 }
 
 private String hashPassword(String password) {
