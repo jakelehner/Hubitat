@@ -1,5 +1,5 @@
 /*
- * Import URL: https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/??-Driver.groovy"
+ * Import URL: https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/drivers/wyzehub-meshlight-driver.groovy
  *
  *	Copyright 2021 Jake Lehner
  *
@@ -21,9 +21,9 @@
 import groovy.transform.Field
 import hubitat.helper.ColorUtils
 
-public static String version()      {  return "v0.0.1"  }
+public static String version() { return "v0.0.1"  }
 
-@Field static final String device_model = 'WLPA19C' 
+public String deviceModel() { return 'WLPA19C' }
 
 @Field static final String wyze_property_power = 'P3'
 @Field static final String wyze_property_device_online = 'P5'
@@ -53,7 +53,7 @@ metadata {
 		name: "WyzeHub Color Bulb", 
 		namespace: "jakelehner", 
 		author: "Jake Lehner", 
-		importUrl: "https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/drivers/wyzehub-meshlight-driver.groovy"
+		importUrl: "https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/drivers/wyzehub-meshlight-driver.groovy"
 	) {
 		capability "Light"
 		capability "SwitchLevel"
@@ -78,8 +78,6 @@ metadata {
 void installed() {
     parent.logDebug("installed()")
 
-	device.updateDataValue('deviceModel', device_model)
-	
 	refresh()
 	initialize()
 }
@@ -103,30 +101,30 @@ void parse(String description) {
 def getThisCopyright(){"&copy; 2021 Jake Lehner"}
 
 def refresh() {
-	parent.logNotice("Refresh device ${device.label}")
-	parent.apiGetDevicePropertyList(device.deviceNetworkId, device.getDataValue('deviceModel')) { propertyList ->
+	parent.logInfo("Refresh device ${device.label}")
+	parent.apiGetDevicePropertyList(device.deviceNetworkId, deviceModel()) { propertyList ->
 		createDeviceEventsFromPropertyList(propertyList)
 	}
 }
 
 def on() {
-	parent.logNotice("'On' Pressed for device ${device.label}")
-	parent.apiRunAction(device.deviceNetworkId, device_model, 'power_on')
+	parent.logInfo("'On' Pressed for device ${device.label}")
+	parent.apiRunAction(device.deviceNetworkId, deviceModel(), 'power_on')
 	createDeviceEventsFromPropertyList([
 		['pid': wyze_property_power, 'value': wyze_property_power_value_on]
 	])
 }
 
 def off() {
-	parent.logNotice("'Off' Pressed for device ${device.label}")
-	parent.apiRunAction(device.deviceNetworkId, device_model, 'power_off')
+	parent.logInfo("'Off' Pressed for device ${device.label}")
+	parent.apiRunAction(device.deviceNetworkId, deviceModel(), 'power_off')
 	createDeviceEventsFromPropertyList([
 		['pid': wyze_property_power, 'value': wyze_property_power_value_off]
 	])
 }
 
 def setLevel(level, durationSecs = null) {
-	parent.logNotice("setLevel() on device ${device.label}")
+	parent.logInfo("setLevel() on device ${device.label}")
 
 	level = level.min(100).max(0)
 
@@ -137,14 +135,14 @@ def setLevel(level, durationSecs = null) {
 		]
 	]
 
-	parent.apiRunActionList(device.deviceNetworkId, device_model, actions)
+	parent.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
 	createDeviceEventsFromPropertyList([
 		['pid': wyze_property_brightness, 'value': level]
 	])
 }
 
 def setColorTemperature(colortemperature, level = null, durationSecs = null) {
-	parent.logNotice("setColorTemperature() on device ${device.label}")
+	parent.logInfo("setColorTemperature() on device ${device.label}")
 
 	// Valid range 1800-6500
 	colortemperature = colortemperature.min(6500).max(1800)
@@ -165,7 +163,7 @@ def setColorTemperature(colortemperature, level = null, durationSecs = null) {
 
 	parent.logDebug(actions)
 
-	parent.apiRunActionList(device.deviceNetworkId, device_model, actions)
+	parent.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
 
 	propertyList = [
 		['pid': wyze_property_color_mode, 'value': wyze_property_color_mode_value_ct],
@@ -180,7 +178,7 @@ def setColorTemperature(colortemperature, level = null, durationSecs = null) {
 }
 
 def setColor(colormap) {
-	parent.logNotice("setColor() on device ${device.label}")
+	parent.logInfo("setColor() on device ${device.label}")
 	
 	hex = hsvToHexNoHash(colormap.hue, colormap.saturation, colormap.level)
 	
@@ -193,7 +191,7 @@ def setColor(colormap) {
 		]
 	]
 
-	parent.apiRunActionList(device.deviceNetworkId, device_model, actions)
+	parent.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
 
 	createDeviceEventsFromPropertyList([
 		['pid': wyze_property_color_mode, 'value': wyze_property_color_mode_value_rgb],
@@ -202,7 +200,7 @@ def setColor(colormap) {
 }
 
 def setHue(hue) {
-	parent.logNotice("setHue() on device ${device.label}")
+	parent.logInfo("setHue() on device ${device.label}")
 
 	// Must be between 0 and 100
 	hue = hue.min(100).max(0)
@@ -217,7 +215,7 @@ def setHue(hue) {
 		]
 	]
 
-	parent.apiRunActionList(device.deviceNetworkId, device_model, actions)	
+	parent.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)	
 
 	createDeviceEventsFromPropertyList([
 		['pid': wyze_property_color_mode, 'value': wyze_property_color_mode_value_rgb],
@@ -226,7 +224,7 @@ def setHue(hue) {
 }
 
 def setSaturation(saturation) {
-	parent.logNotice("setSaturation() on device ${device.label}")
+	parent.logInfo("setSaturation() on device ${device.label}")
 
 	// Must be between 0 and 100
 	saturation = saturation.min(100).max(0)
@@ -241,7 +239,7 @@ def setSaturation(saturation) {
 		]
 	]
 
-	parent.apiRunActionList(device.deviceNetworkId, device_model, actions)
+	parent.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
 
 	createDeviceEventsFromPropertyList([
 		['pid': wyze_property_color_mode, 'value': wyze_property_color_mode_value_rgb],

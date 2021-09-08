@@ -1,5 +1,5 @@
 /*
- * Import URL: https://raw.githubusercontent.com/HubitatCommunity/??/master/??-Driver.groovy"
+ * Import URL: https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/apps/wyzehub-app.groovy
  *
  *	Copyright 2019 your Name
  *
@@ -28,9 +28,12 @@ public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }
 
 @Field static final String childNamespace = "jakelehner" 
+@Field static final Map groupDriverMap = [
+   8: [label: 'Color Bulb Group', driver: 'WyzeHub Color Bulb Group'],
+]
 @Field static final Map driverMap = [
    'MeshLight': [label: 'Color Bulb', driver: 'WyzeHub Color Bulb'],
-   'Plug': [label: 'Plug', driver: 'WyzeHub Plug'],,
+   'Plug': [label: 'Plug', driver: 'WyzeHub Plug'],
    'default': [label: 'Unsupported Type', driver: null]
 ]
 
@@ -77,13 +80,15 @@ definition(
 	iconX3Url: '',
 	singleInstance: true,
 	oauth: false,
-	importUrl: ''
+	importUrl: 'https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/apps/wyzehub-app.groovy'
 )
 
 preferences 
 {
    page(name: 'pageMenu')
    page(name: 'pageAuthSettings')
+   page(name: 'pageImportDevices')
+   page(name: 'pageDoImportDevices')
    page(name: 'pageSelectDevices')
 }
 
@@ -99,7 +104,7 @@ def installed()
 
 	initialize()
 	
-	logNotice('App Installed')
+	logInfo('App Installed')
 }
 
 def updated() 
@@ -143,13 +148,13 @@ def uninstalled()
 {
 	logDebug('uninstalled()')
 
-	logNotice("Deleting child devices...")
+	logInfo("Deleting child devices...")
 	getChildDevices().each { device->
 		logInfo("Deleting device: " + device.deviceNetworkId)
 		deleteChildDevice(device.deviceNetworkId)
 	}
 
-	logNotice("Uninstalled")
+	logInfo("Uninstalled")
 }
 
 //  -------
@@ -194,7 +199,9 @@ def pageMenu()
 		}
 
 		section("") {
-			href(name: 'hrefSelectLights', title: 'Select Devices',
+			href(name: 'hrefImportDevices', title: 'Import Devices',
+               description: '', page: 'pageImportDevices', image: '')
+			href(name: 'hrefSelectDevices', title: 'Select Devices',
                description: '', page: 'pageSelectDevices', image: '')
         //  href(name: 'hrefSelectGroups', title: 'Select Groups',
         //        description: '', page: 'pageSelectGroups')
@@ -203,7 +210,7 @@ def pageMenu()
         
       }
 
-		section('Advanced Options') 
+		section('App Options') 
    		{
 			logLevelOptions = [
 				'5' : 'Debug',
@@ -240,11 +247,156 @@ def pageAuthSettings() {
 	}	
 }
 
+def pageImportDevices() {
+	logDebug('pageImportDevices()')
+
+	return dynamicPage(
+		name: 'pageImportDevices', 
+		title: "", 
+		install: false, 
+		uninstall: true, 
+		refreshInterval: 0,
+		nextPage: 'pageDoImportDevices'
+	) {
+		section(getFormat('title', "${app.label} - Import Devices")) {
+			paragraph("Click net import <scrstrongipt>all</strong> supported devices and groups from Wyze...")
+		}
+		
+	}
+}
+	
+def pageDoImportDevices() {
+	logDebug('pageDoImportDevices()')
+
+	updateDeviceCache() 
+	
+	// Delete Existing Devices
+	getChildDevices().each { device -> 
+		logInfo("Deleting device: " + device.deviceNetworkId)
+		deleteChildDevice(device.deviceNetworkId)
+	}
+
+	deviceGroupsCache = getDeviceGroupListFromCache()
+	deviceCache = getDeviceListFromCache()
+
+	logDebug('Processing device Groups...')
+	
+	// Create Device Groups & Devices
+	createdDeviceGroups = [:]
+	deviceGroupsCache.each { mac, group ->
+		groupDriver = groupDriverMap[group.group_type_id]
+
+		if (!groupDriver) {
+			logDebug("Unsupported Group Type: ${group.group_type_id}")
+			return;
+		}
+
+		networkId = group.group_type_id + '.' + group.group_id
+		existingGroupDevice = getChildDevice(networkId)
+
+		if (existingGroup) {
+			logDebug("Group already exists: ${networkId}")
+			createdDeviceGroups[existingGroup.deviceNetworkId: existingGroupDevice]
+			return;
+		}
+
+		logDebug("Creating Group: ${networkId}")
+		deviceProps = [
+			name: groupDriver.label, 
+			label: group.group_name
+		]
+		newGroupDevice = addChildDevice(childNamespace, groupDriver.driver, networkId, deviceProps)
+		createdDeviceGroups[newGroupDevice.deviceNetworkId: newGroupDevice]
+
+		
+	}
+
+	// TODO Loop through device groups and remove any existing devices that don't match
+
+	// TODO Add new devices
+	createdDeviceGroups.each { networkId, groupDevice ->
+
+
+	}
+
+	return dynamicPage(
+		name: 'pageDoImportDevices', 
+		title: "", 
+		install: false, 
+		uninstall: true, 
+		refreshInterval: 0,
+		nextPage: 'pageMenu'
+	) {
+		section(getFormat('title', "${app.label} - Import Devices")) {
+			paragraph("Done?")
+		}
+		
+	}
+
+
+	// List newDevices = []
+	// List unsupportedDevices = []
+	// Map unclaimedDevices = [:];
+
+	// if (deviceList) {
+	// 	logDebug('pageSelectDevices(): process device list')
+		
+	// 	deviceList.each { mac, device ->
+	// 		productType = driverMap[device.product_type]
+	// 		childDeviceExists = getChildDevice(device.mac)
+	// 		if(!productType) {
+	// 			unsupportedDevices << device
+	// 		} else if (productType && !childDeviceExists) {
+    //            Map newDevice = [:]
+    //            newDevice << [(device.mac): "[${productType.label}] ${device.nickname}"]
+    //            newDevices << newDevice
+    //         }
+	// 	}
+
+	// 	// Sort
+	// 	newDevices = newDevices.sort { a, b ->
+	// 		a.entrySet().iterator().next()?.value <=> b.entrySet().iterator().next()?.value
+	// 	}
+	// 	unsupportedDevices = unsupportedDevices.sort { it.value }
+	// }
+
+	// return dynamicPage(
+	// 	name: 'pageSelectDevices', 
+	// 	title: "${app.label} Device Selection", 
+	// 	install: false, 
+	// 	uninstall: true, 
+	// 	refreshInterval: 0,
+	// 	nextPage: 'pageMenu'
+	// ) {
+		
+	// 	if (!deviceList) {
+	// 		section("No New Devices Found...") {            
+	// 			input(name: "btnDeviceRefresh", type: "button", title: "Refresh", submitOnChange: true)
+	// 		}
+	// 	} else {
+
+	// 		section(getFormat('title', 'Add Devices')) {
+	// 			input(name: "addDevices", type: "enum", title: "Select Groups and Devices to add:",
+	// 				submitOnChange: false, multiple: true, options: newDevices)
+	// 		}
+	// 	}
+
+	// 	if(unsupportedDevices) {
+	// 		section(getFormat('title', 'Unsupported Devices')) {
+	// 			unsupportedDevices.each{ device ->
+	// 				paragraph " - [${device.product_type}] ${device.nickname}"
+	// 			}
+	// 		}
+	// 	}
+
+   	// 	displayFooter()
+	// }	
+}
+
 def pageSelectDevices() {
+	logDebug('pageSelectDevices()')
 	
-	logDebug('pageSelectLights()')
-	
-	updateDeviceCache()
+	updateDeviceCache() 
 	deviceList = getDeviceListFromCache()
 	
 	List newDevices = []
@@ -252,14 +404,14 @@ def pageSelectDevices() {
 	Map unclaimedDevices = [:];
 
 	if (deviceList) {
-		logDebug('pageSelectLights(): process device list')
+		logDebug('pageSelectDevices(): process device list')
 		
 		deviceList.each { mac, device ->
 			productType = driverMap[device.product_type]
 			childDeviceExists = getChildDevice(device.mac)
 			if(!productType) {
 				unsupportedDevices << device
-			}else if (productType && !childDeviceExists) {
+			} else if (productType && !childDeviceExists) {
                Map newDevice = [:]
                newDevice << [(device.mac): "[${productType.label}] ${device.nickname}"]
                newDevices << newDevice
@@ -289,7 +441,7 @@ def pageSelectDevices() {
 		} else {
 
 			section(getFormat('title', 'Add Devices')) {
-				input(name: "addDevices", type: "enum", title: "Select devices to add:",
+				input(name: "addDevices", type: "enum", title: "Select Groups and Devices to add:",
 					submitOnChange: false, multiple: true, options: newDevices)
 			}
 		}
@@ -368,7 +520,7 @@ try {
     return true
 }
 
-private def void updateDeviceCache() {
+private def updateDeviceCache(Closure closure = null) {
 	logDebug("updateDeviceCache()")
 	state.deviceCache = [
 		'groups': [:],
@@ -384,7 +536,6 @@ private def void updateDeviceCache() {
 		response.data.device_list.each { device ->
 			state.deviceCache['devices'][device.mac] = device
 		}
-		
 	}
 }
 
@@ -474,8 +625,8 @@ def apiGetDevicePropertyList(String deviceMac, String deviceModel, callback = nu
 }
 
 def apiRunAction(String deviceMac, String deviceModel, String actionKey, closure = null) {
-	logDebug("apiRunAction()")
-	logDebug(['mac': deviceMac, 'model': deviceModel, 'actionKey': actionKey])
+	logInfo("apiRunAction()")
+	logInfo(['mac': deviceMac, 'model': deviceModel, 'actionKey': actionKey])
 
 	requestBody = wyzeRequestBody() + [
 		'sv': '011a6b42d80a4f32b4cc24bb721c9c96', 
@@ -537,7 +688,7 @@ def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId
 	}
 }
 
-def apiPost(String path, Map body = [], callback = {}) {
+def apiPost(String path, Map body = [], Closure closure) {
 	logDebug('apiPost()')
 
 	bodyJson = (new JsonBuilder(body)).toString()
@@ -555,14 +706,12 @@ def apiPost(String path, Map body = [], callback = {}) {
 			if (response.data.code != "1") {
 				logError("apiPost error!")
                 logDebug(response.data)
-				callback(false)
-				return
+				throw new Exception("Invalid Response Data Code: ${response.data.code}")
 			}
-			callback(response.data) 
+			closure(response.data) 
 		}
 	} catch (Exception e) {
 		logError("API Call to ${params.uri}${params.path} failed with Exception: ${e}")
-		return false
 	}
 }
 
@@ -607,27 +756,20 @@ private void logDebug(message) {
 private void logInfo(message) {
 	level = settings.logLevel ?: log_level_default
 	if (level >= log_level_info) {
-		log.info("[${infoapp.label}] " + message)
-	}
-}
-
-private void logNotice(message) {
-	level = settings.logLevel ?: log_level_default
-	if (level >= log_level_notice) {
-		log.notice("[${infoapp.label}] " + message)
+		log.info("[${app.label}] " + message)
 	}
 }
 
 private void logWarn(message) {
 	level = settings.logLevel ?: log_level_default
 	if (level >= log_level_warn) {
-		log.WARRANTIES("[${infoapp.label}] " + message)
+		log.warn("[${app.label}] " + message)
 	}
 }
 
 private void logError(message) {
 	level = settings.logLevel ?: log_level_default
 	if (level >= log_level_error) {
-		log.error("[${infoapp.label}] " + message)
+		log.error("[${app.label}] " + message)
 	}
 }

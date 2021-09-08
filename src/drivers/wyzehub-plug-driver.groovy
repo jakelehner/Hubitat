@@ -1,5 +1,5 @@
 /*
- * Import URL: https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/??-Driver.groovy"
+ * Import URL: https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/drivers/wyzehub-plug-driver.groovy
  *
  *	Copyright 2021 Jake Lehner
  *
@@ -22,7 +22,7 @@ import groovy.transform.Field
 
 public static String version()      {  return "v0.0.1"  }
 
-@Field static final String device_model = 'WLPP1CFH'
+public String deviceModel() { return 'WLPP1CFH' }
 
 @Field static final String wyze_property_power = 'P3'
 @Field static final String wyze_property_device_online = 'P5'
@@ -41,7 +41,7 @@ metadata {
 		name: "WyzeHub Plug", 
 		namespace: "jakelehner", 
 		author: "Jake Lehner", 
-		importUrl: "https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/drivers/wyzehub-meshlight-driver.groovy"
+		importUrl: "https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/drivers/wyzehub-plug-driver.groovy"
 	) {
 		capability "Outlet"
 		capability "Refresh"
@@ -59,8 +59,6 @@ metadata {
 
 void installed() {
     log.debug "installed()"
-
-	device.updateDataValue('deviceModel', device_model)
 
 	// TODO Make Configurable
 	unschedule('refresh')
@@ -86,8 +84,8 @@ void parse(String description) {
 def getThisCopyright(){"&copy; 2021 Jake Lehner"}
 
 def refresh() {
-	parent.logNotice("Refresh device ${device.label}")
-	parent.apiGetDevicePropertyList(device.deviceNetworkId, device_model) { propertyList ->
+	parent.logInfo("Refresh device ${device.label}")
+	parent.apiGetDevicePropertyList(device.deviceNetworkId, deviceModel()) { propertyList ->
 		createDeviceEventsFromPropertyList(propertyList)
 	}
 
@@ -98,16 +96,16 @@ def refresh() {
 }
 
 def on() {
-	parent.logNotice("'On' Pressed for device ${device.label}")
-	parent.apiRunAction(device.deviceNetworkId, device_model, 'power_on')
+	parent.logInfo("'On' Pressed for device ${device.label}")
+	parent.apiRunAction(device.deviceNetworkId, deviceModel(), 'power_on')
 	createDeviceEventsFromPropertyList([
 		['pid': wyze_property_power, 'value': wyze_property_power_value_on]
 	])
 }
 
 def off() {
-	parent.logNotice("'Off' Pressed for device ${device.label}")
-	parent.apiRunAction(device.deviceNetworkId, device_model, 'power_off')
+	parent.logInfo("'Off' Pressed for device ${device.label}")
+	parent.apiRunAction(device.deviceNetworkId, deviceModel(), 'power_off')
 	createDeviceEventsFromPropertyList([
 		['pid': wyze_property_power, 'value': wyze_property_power_value_off]
 	])
