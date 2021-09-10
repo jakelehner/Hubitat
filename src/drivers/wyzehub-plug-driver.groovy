@@ -1,20 +1,32 @@
 /*
  * Import URL: https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/drivers/wyzehub-plug-driver.groovy
  *
- *	Copyright 2021 Jake Lehner
+ * DON'T BE A DICK PUBLIC LICENSE
  *
- *	Licensed under the Apache License, Version 2.0 (the "License"); you may not
- *	use this file except in compliance with the License. You may obtain a copy
- *	of the License at:
+ * Version 1.1, December 2016
  *
- *		http://www.apache.org/licenses/LICENSE-2.0
+ * Copyright (C) 2021 Jake Lehner
+ * 
+ * Everyone is permitted to copy and distribute verbatim or modified
+ * copies of this license document.
+ * 
+ * DON'T BE A DICK PUBLIC LICENSE
+ * TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
  *
- *	Unless required by applicable law or agreed to in writing, software
- *	distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- *	WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- *	License for the specific language governing permissions and limitations
- *	under the License.
+ * 1. Do whatever you like with the original work, just don't be a dick.
+ * 
+ *    Being a dick includes - but is not limited to - the following instances:
  *
+ *    1a. Outright copyright infringement - Don't just copy this and change the name.
+ *    1b. Selling the unmodified original with no work done what-so-ever, that's REALLY being a dick.
+ *    1c. Modifying the original work to contain hidden harmful content. That would make you a PROPER dick.
+ *
+ * 2. If you become rich through modifications, related works/services, or supporting the original work,
+ *    share the love. Only a dick would make loads off this work and not buy the original work's
+ *    creator(s) a pint.
+ * 
+ * 3. Code is provided with no warranty. Using somebody else's code and bitching when it goes wrong makes
+ *    you a DONKEY dick. Fix the problem yourself. A non-dick would submit the fix back.
  *
  */
 
