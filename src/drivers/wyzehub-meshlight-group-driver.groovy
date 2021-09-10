@@ -58,25 +58,25 @@ void installed() {
 
 void updated() {
     app = getApp()
-	app.logDebug("updated()")
+	logDebug("updated()")
     initialize()
 }
 
 void initialize() {
     app = getApp()
-	app.logDebug("initialize()")
+	logDebug("initialize()")
 }
 
 void parse(String description) {
 	app = getApp()
-	app.logWarn("Running unimplemented parse for: '${description}'")
+	logWarn("Running unimplemented parse for: '${description}'")
 }
 
 def getThisCopyright(){"&copy; 2021 Jake Lehner"}
 
 def refresh() {
 	app = getApp()
-	app.logDebug("refresh()")
+	logDebug("refresh()")
 	getChildDevices().each { device -> 
 		device.refresh()
 	}
@@ -84,7 +84,7 @@ def refresh() {
 
 def on() {
 	app = getApp()
-	app.logDebug("on()")
+	logDebug("on()")
 	getChildDevices().each { device -> 
 		device.on()
 	}
@@ -92,7 +92,7 @@ def on() {
 
 def off() {
 	app = getApp()
-	app.logDebug("off()")
+	logDebug("off()")
 	getChildDevices().each { device -> 
 		device.off()
 	}
@@ -100,7 +100,7 @@ def off() {
 
 def setLevel(level, durationSecs = null) {
 	app = getApp()
-	app.logDebug("setLevel()")
+	logDebug("setLevel()")
 	getChildDevices().each { device -> 
 		device.setLevel(level, durationSecs)
 	}
@@ -108,7 +108,7 @@ def setLevel(level, durationSecs = null) {
 
 def setColorTemperature(colortemperature, level = null, durationSecs = null) {
 	app = getApp()
-	app.logDebug("setColorTemperature()")
+	logDebug("setColorTemperature()")
 	getChildDevices().each { device -> 
 		device.setColorTemperature(colortemperature, level, durationSecs)
 	}
@@ -116,7 +116,7 @@ def setColorTemperature(colortemperature, level = null, durationSecs = null) {
 
 def setColor(colormap) {
 	app = getApp()
-	app.logDebug("setColor()")
+	logDebug("setColor()")
 	getChildDevices().each { device -> 
 		device.setColor(colormap)
 	}
@@ -124,7 +124,7 @@ def setColor(colormap) {
 
 def setHue(hue) {
 	app = getApp()
-	app.logDebug("setHue()")
+	logDebug("setHue()")
 	getChildDevices().each { device -> 
 		device.setHue(hue)
 	}
@@ -132,7 +132,7 @@ def setHue(hue) {
 
 def setSaturation(saturation) {
 	app = getApp()
-	app.logDebug("setSaturation()")
+	logDebug("setSaturation()")
 	getChildDevices().each { device -> 
 		device.setSaturation(saturation)
 	}
@@ -144,4 +144,24 @@ private getApp() {
 		app = app.getParent()
 	}
 	return app
+}
+
+private void logDebug(message) {
+	app = getApp()
+	app.logDebug("[${device.label}] " + message)
+}
+
+private void logInfo(message) {
+	app = getApp()
+	app.logInfo("[${device.label}] " + message)
+}
+
+private void logWarn(message) {
+	app = getApp()
+	app.logWarn("[${device.label}] " + message)
+}
+
+private void logError(message) {
+	app = getApp()
+	app.logError("[${device.label}] " + message)
 }

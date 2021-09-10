@@ -43,7 +43,7 @@ metadata {
 
 void installed() {
     app = getApp()
-	app.logDebug("installed()")
+	logDebug("installed()")
 
 	refresh()
 	initialize()
@@ -51,18 +51,18 @@ void installed() {
 
 void updated() {
     app = getApp()
-	app.logDebug("updated()")
+	logDebug("updated()")
     initialize()
 }
 
 void initialize() {
     app = getApp()
-	app.logDebug("initialize()")
+	logDebug("initialize()")
 }
 
 void parse(String description) {
 	app = getApp()
-	app.logWarn("Running unimplemented parse for: '${description}'")
+	logWarn("Running unimplemented parse for: '${description}'")
 }
 
 def getThisCopyright(){"&copy; 2021 Jake Lehner"}
@@ -91,4 +91,24 @@ private getApp() {
 		app = app.getParent()
 	}
 	return app
+}
+
+private void logDebug(message) {
+	app = getApp()
+	app.logDebug("[${device.label}] " + message)
+}
+
+private void logInfo(message) {
+	app = getApp()
+	app.logInfo("[${device.label}] " + message)
+}
+
+private void logWarn(message) {
+	app = getApp()
+	app.logWarn("[${device.label}] " + message)
+}
+
+private void logError(message) {
+	app = getApp()
+	app.logError("[${device.label}] " + message)
 }

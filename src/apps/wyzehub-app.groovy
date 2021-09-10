@@ -126,7 +126,9 @@ def initialize()
 	if (!state.deviceCache) {
 		state.deviceCache = [
 			'groups': [:],
-			'devices': [:]
+			'devices': [:],
+			'deviceParentMap': [:],
+			'groupDeviceMacs': []
 		]
 	}
 
@@ -138,7 +140,7 @@ def initialize()
 	if (logEnable) {
 		logInfo('Logging is Enabled')
 		if (debugEnabled) {
-			logInfo('Debug Logging is Enabled')
+			logDebug('Debug Logging is Enabled')
 		}
 	}
 
@@ -147,6 +149,8 @@ def initialize()
 def uninstalled() 
 {
 	logDebug('uninstalled()')
+	
+	logInfo("Uninstalling...")
 
 	logInfo("Deleting child devices...")
 	getChildDevices().each { device->
@@ -249,7 +253,6 @@ def pageAuthSettings() {
    		displayFooter()
 	}	
 }
-
 
 def pageSelectDeviceGroups() {
     logDebug('pageSelectDeviceGroups()')
@@ -477,6 +480,7 @@ private def updateDeviceCache(Closure closure = null) {
 	state.deviceCache = [
 		'groups': [:],
 		'devices': [:],
+		'deviceParentMap': [:],
 		'groupDeviceMacs': []
 	]
 	requestBody = wyzeRequestBody() + ['sv': 'c417b62d72ee44bf933054bdca183e77']
@@ -484,7 +488,7 @@ private def updateDeviceCache(Closure closure = null) {
 
 		response.data.device_group_list.each { deviceGroup ->
 			state.deviceCache['groups'][deviceGroup.group_id] = deviceGroup
-			deviceGroup.device_list.each { 
+			deviceGroup.device_list.each {
 				state.deviceCache['groupDeviceMacs'] << it.device_mac
 			}
 		}
@@ -534,30 +538,33 @@ private def addDeviceGroups(List deviceGroupIds) {
 				return
 			}
 
-            networkId = generateGroupNetworkId(deviceGroupFromCache)
+            groupNetworkId = generateGroupNetworkId(deviceGroupFromCache)
 			deviceProps = [
 				name: driver, 
 				label: deviceGroupFromCache.group_name,
 			]
-			groupDevice = addChildDevice(childNamespace, driver, networkId, deviceProps)
+			groupDevice = addChildDevice(childNamespace, driver, groupNetworkId, deviceProps)
             
             // Add Child Devices
             deviceGroupFromCache.device_list.each { device ->
                 mac = device.device_mac
                 Map deviceFromCache = getDeviceFromCache(mac)
                 if (deviceFromCache) {
-                    logInfo("Adding device group child device device type ${deviceFromCache.product_type} with mac ${mac}")
+                    logInfo("Adding device group child device type ${deviceFromCache.product_type} with mac ${mac}")
                 
                     driver = driverMap[deviceFromCache.product_type].driver
                     if (!driver) {
                         logError("Driver not found. Unsupported Device Type: ${deviceFromCache.product_type}")
                         return
                     }
+					
                     deviceProps = [
                         name: (driver), 
                         label: (deviceFromCache.nickname),
                         deviceModel: (deviceFromCache.product_model)
                     ]
+
+					state.deviceCache.deviceParentMap[mac] = groupNetworkId
                     groupDevice.addChildDevice(childNamespace, driver, deviceFromCache.mac, deviceProps)
                 }
             }
@@ -626,9 +633,8 @@ def apiGetDevicePropertyList(String deviceMac, String deviceModel, Closure closu
 }
 
 def apiRunAction(String deviceMac, String deviceModel, String actionKey, Closure closure = {}) {
-	logInfo("apiRunAction()")
-	logInfo(['mac': deviceMac, 'model': deviceModel, 'actionKey': actionKey])
-
+	logDebug("apiRunAction()")
+	
 	requestBody = wyzeRequestBody() + [
 		'sv': '011a6b42d80a4f32b4cc24bb721c9c96', 
 		'action_key': actionKey,
@@ -637,24 +643,33 @@ def apiRunAction(String deviceMac, String deviceModel, String actionKey, Closure
 		'provider_key': deviceModel
 	]
 
-	apiPost('/app/v2/auto/run_action', requestBody) { response ->
-		closure(response)
-	}
+	callbackData = [
+		'deviceNetworkId': deviceMac,
+		'propertyList': [
+			[
+				'pid': actionKey,
+				'pvalue': actionKey
+			]
+		]
+	]
+
+	asyncapiPost('/app/v2/auto/run_action', requestBody, 'deviceEventsCallback', callbackData)
+	
 }
 
-def apiRunActionList(String deviceNetworkId, String deviceModel, List actionList) {
+def apiRunActionList(String deviceMac, String deviceModel, List actionList) {
 	logDebug("apiRunActionList()")
-	logDebug(['mac': deviceNetworkId, 'model': deviceModel, 'actionList': actionList])
+	logDebug(['mac': deviceMac, 'model': deviceModel, 'actionList': actionList])
 
 	List apiActionList = [
 		[
 			'action_key': 'set_mesh_property',
-			'instance_id': deviceNetworkId,
+			'instance_id': deviceMac,
 			'provider_key': deviceModel,
 			'action_params': [
 				'list': [
 						[
-							'mac': deviceNetworkId,
+							'mac': deviceMac,
 							'plist': actionList
 						]
 					]
@@ -668,7 +683,7 @@ def apiRunActionList(String deviceNetworkId, String deviceModel, List actionList
 	]
 
 	callbackData = [
-		'deviceNetworkId': deviceNetworkId,
+		'deviceNetworkId': deviceMac,
 		'propertyList': actionList
 	]
 
@@ -687,7 +702,15 @@ def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId
 		'pvalue': value
 	]
 
-	callbackData = [:]
+	callbackData = [
+		'deviceNetworkId': deviceNetworkId,
+		'propertyList': [
+			[
+				'pid': propertyId,
+				'pvalue': value
+			]
+		]
+	]
 	
 	apiPost('/app/v2/device/set_property', requestBody) { response ->
 		closure(response)
@@ -752,7 +775,12 @@ private void deviceEventsCallback(response, data) {
 		return
 	}
 
-	device = getChildDevice(data.deviceNetworkId)
+	parentNetworkId = state.deviceCache.deviceParentMap[data.deviceNetworkId]
+	if (parentNetworkId) {
+		device = getChildDevice(parentNetworkId).getChildDevice(data.deviceNetworkId)
+	} else {
+		device = getChildDevice(data.deviceNetworkId)
+	}
 
 	if (!device) {
 		logDebug("Device ${data.deviceNetworkId} not found")

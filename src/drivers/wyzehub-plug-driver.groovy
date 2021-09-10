@@ -88,7 +88,7 @@ def getThisCopyright() { "&copy; 2021 Jake Lehner" }
 
 def refresh() {
 	app = getApp()
-	app.logInfo("Refresh device ${device.label}")
+	logInfo("Refresh Device")
 	app.apiGetDevicePropertyList(device.deviceNetworkId, deviceModel()) { propertyList ->
 		createDeviceEventsFromPropertyList(propertyList)
 	}
@@ -101,29 +101,21 @@ def refresh() {
 
 def on() {
 	app = getApp()
-	app.logInfo("'On' Pressed for device ${device.label}")
+	logInfo("'On' Pressed")
 
-	app.apiRunAction(device.deviceNetworkId, deviceModel(), wyze_action_power_on) { result ->
-		createDeviceEventsFromPropertyList([
-			['pid': wyze_property_power, 'value': wyze_property_power_value_on]
-		])
-	}
-	
+	app.apiRunAction(device.deviceNetworkId, deviceModel(), wyze_action_power_on)
 }
 
 def off() {
 	app = getApp()
-	app.logInfo("'Off' Pressed for device ${device.label}")
+	logInfo("'Off' Pressed")
 
 	app.apiRunAction(device.deviceNetworkId, deviceModel(), wyze_action_power_off)
-	createDeviceEventsFromPropertyList([
-		['pid': wyze_property_power, 'value': wyze_property_power_value_off]
-	])
 }
 
 void createDeviceEventsFromPropertyList(List propertyList) {
 	app = getApp()
-    app.logDebug("createEventsFromPropertyList()")
+    logDebug("createEventsFromPropertyList()")
 
     String eventName, eventUnit
     def eventValue // could be String or number
@@ -141,7 +133,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
                 eventValue = deviceColorMode
 
 				if (device.currentValue(eventName) != eventValue) {
-					app.logDebug('Updating Property: colorMode')
+					logDebug('Updating Property: colorMode')
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             }
@@ -150,15 +142,26 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 
     propertyList.each { property ->
 	
-        switch(property.pid) {
+		propertyValue = property.value ?: property.pvalue ?: null
+		switch(property.pid) {
             // Switch State
+			case wyze_action_power_on:
+			case wyze_action_power_off:
             case wyze_property_power:
 				eventName = "switch"
                 eventUnit = null
-                eventValue = property.value == wyze_property_power_value_on ? "on" : "off"
-                
+
+				if(propertyValue == wyze_property_power_value_on) {
+					eventValue = "on"
+				} else if(propertyValue == wyze_action_power_on) {
+					eventValue = "on"
+				} else {
+					eventValue = "off"
+				}
+
+				logInfo([eventName, property.pvalue, propertyValue, eventValue])
 				if (device.currentValue(eventName) != eventValue) {
-					app.logDebug('Updating Property: switch')
+					logDebug('Updating Property: switch')
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -167,10 +170,10 @@ void createDeviceEventsFromPropertyList(List propertyList) {
             case wyze_property_device_online:
                 eventName = "online"
                 eventUnit = null
-                eventValue = property.value == wyze_property_device_online_value_true ? "true" : "false"
+                eventValue = propertyValue == wyze_property_device_online_value_true ? "true" : "false"
                 
 				if (device.currentValue(eventName) != eventValue) {
-					app.logDebug('Updating Property: online')
+					logDebug('Updating Property: online')
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -179,10 +182,10 @@ void createDeviceEventsFromPropertyList(List propertyList) {
             case wyze_property_rssi:
                 eventName = "rssi"
                 eventUnit = 'db'
-                eventValue = property.value
+                eventValue = propertyValue
 
 				if (device.currentValue(eventName) != eventValue) {
-					app.logDebug('Updating Property: rssi')
+					logDebug('Updating Property: rssi')
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -191,10 +194,10 @@ void createDeviceEventsFromPropertyList(List propertyList) {
             case wyze_property_vacation_mode:
                 eventName = "vacationMode"
                 eventUnit = null
-                eventValue = property.value == wyze_property_device_vacation_mode_value_true ? "true" : "false"
+                eventValue = propertyValue == wyze_property_device_vacation_mode_value_true ? "true" : "false"
 
 				if (device.currentValue(eventName) != eventValue) {
-					app.logDebug('Updating Property: vacationMode')
+					logDebug('Updating Property: vacationMode')
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -209,4 +212,24 @@ private getApp() {
 		app = app.getParent()
 	}
 	return app
+}
+
+private void logDebug(message) {
+	app = getApp()
+	app.logDebug("[${device.label}] " + message)
+}
+
+private void logInfo(message) {
+	app = getApp()
+	app.logInfo("[${device.label}] " + message)
+}
+
+private void logWarn(message) {
+	app = getApp()
+	app.logWarn("[${device.label}] " + message)
+}
+
+private void logError(message) {
+	app = getApp()
+	app.logError("[${device.label}] " + message)
 }

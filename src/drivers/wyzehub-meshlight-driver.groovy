@@ -76,19 +76,19 @@ metadata {
 }
 
 void installed() {
-    app.logDebug("installed()")
+    logDebug("installed()")
 
 	refresh()
 	initialize()
 }
 
 void updated() {
-    app.logDebug("updated()")
+    logDebug("updated()")
     initialize()
 }
 
 void initialize() {
-    app.logDebug("initialize()")
+    logDebug("initialize()")
 
     unschedule('refresh')
     schedule('0/10 * * * * ? *', 'refresh')
@@ -102,7 +102,7 @@ def getThisCopyright(){"&copy; 2021 Jake Lehner"}
 
 def refresh() {
 	app = getApp()
-	app.logInfo("Refresh device ${device.label}")
+	logInfo("Refresh Device")
 	app.apiGetDevicePropertyList(device.deviceNetworkId, deviceModel()) { propertyList ->
 		createDeviceEventsFromPropertyList(propertyList)
 	}
@@ -110,7 +110,7 @@ def refresh() {
 
 def on() {
 	app = getApp()
-	app.logInfo("'On' Pressed for device ${device.label}")
+	logInfo("'On' Pressed for device ${device.label}")
 	actions = [
 		[
 			'pid': wyze_property_power,
@@ -119,16 +119,11 @@ def on() {
 	]
 
 	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
-
-	// ToDo Move to Callback
-	createDeviceEventsFromPropertyList([
-		['pid': wyze_property_power, 'value': wyze_property_power_value_on]
-	])
 }
 
 def off() {
 	app = getApp()
-	app.logInfo("'Off' Pressed for device ${device.label}")
+	logInfo("'Off' Pressed for device ${device.label}")
 	actions = [
 		[
 			'pid': wyze_property_power,
@@ -137,16 +132,11 @@ def off() {
 	]
 
 	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
-	
-	// ToDo Move to Callback
-	createDeviceEventsFromPropertyList([
-		['pid': wyze_property_power, 'value': wyze_property_power_value_off]
-	])
 }
 
 def setLevel(level, durationSecs = null) {
 	app = getApp()
-	app.logInfo("setLevel() on device ${device.label}")
+	logInfo("setLevel() on device ${device.label}")
 
 	level = level.min(100).max(0)
 
@@ -158,14 +148,11 @@ def setLevel(level, durationSecs = null) {
 	]
 
 	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
-	createDeviceEventsFromPropertyList([
-		['pid': wyze_property_brightness, 'value': level]
-	])
 }
 
 def setColorTemperature(colortemperature, level = null, durationSecs = null) {
 	app = getApp()
-	app.logInfo("setColorTemperature() on device ${device.label}")
+	logInfo("setColorTemperature() on device ${device.label}")
 
 	// Valid range 1800-6500
 	colortemperature = colortemperature.min(6500).max(1800)
@@ -184,29 +171,18 @@ def setColorTemperature(colortemperature, level = null, durationSecs = null) {
 		]
 	}
 
-	app.logDebug(actions)
+	logDebug(actions)
 
 	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
-
-	propertyList = [
-		['pid': wyze_property_color_mode, 'value': wyze_property_color_mode_value_ct],
-		['pid': wyze_property_color_temp, 'value': colortemperature]	
-	]
-
-	if (level) {
-		propertyList << ['pid': wyze_property_brightness, 'value': level]
-	}
-
-	createDeviceEventsFromPropertyList(propertyList)
 }
 
 def setColor(colormap) {
 	app = getApp()
-	app.logInfo("setColor() on device ${device.label}")
+	logInfo("setColor() on device ${device.label}")
 	
 	hex = hsvToHexNoHash(colormap.hue, colormap.saturation, colormap.level)
 	
-	app.logDebug('Setting color to ' + hex)
+	logDebug('Setting color to ' + hex)
 
 	actions = [
 		[
@@ -216,16 +192,11 @@ def setColor(colormap) {
 	]
 
 	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
-
-	createDeviceEventsFromPropertyList([
-		['pid': wyze_property_color_mode, 'value': wyze_property_color_mode_value_rgb],
-		['pid': wyze_property_color, 'value': hex]
-	])
 }
 
 def setHue(hue) {
 	app = getApp()
-	app.logInfo("setHue() on device ${device.label}")
+	logInfo("setHue() on device ${device.label}")
 
 	// Must be between 0 and 100
 	hue = hue.min(100).max(0)
@@ -241,16 +212,11 @@ def setHue(hue) {
 	]
 
 	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)	
-
-	createDeviceEventsFromPropertyList([
-		['pid': wyze_property_color_mode, 'value': wyze_property_color_mode_value_rgb],
-		['pid': wyze_property_color, 'value': hex]	
-	])
 }
 
 def setSaturation(saturation) {
 	app = getApp()
-	app.logInfo("setSaturation() on device ${device.label}")
+	logInfo("setSaturation() on device ${device.label}")
 
 	// Must be between 0 and 100
 	saturation = saturation.min(100).max(0)
@@ -266,16 +232,11 @@ def setSaturation(saturation) {
 	]
 
 	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
-
-	createDeviceEventsFromPropertyList([
-		['pid': wyze_property_color_mode, 'value': wyze_property_color_mode_value_rgb],
-		['pid': wyze_property_color, 'value': hex]	
-	])	
 }
 
 void createDeviceEventsFromPropertyList(List propertyList) {
     app = getApp()
-	app.logDebug("createEventsFromPropertyList()")
+	logDebug("createEventsFromPropertyList()")
 
     String eventName, eventUnit
     def eventValue // could be String or number
@@ -293,7 +254,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
                 eventValue = deviceColorMode
 
 				if (device.currentValue(eventName) != eventValue) {
-					app.logDebug('Updating Property: colorMode')
+					logDebug('Updating Property: colorMode')
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             }
@@ -302,15 +263,16 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 
     propertyList.each { property ->
 	
+		propertyValue = property.value ?: property.pvalue ?: null
         switch(property.pid) {
             // Switch State
             case wyze_property_power:
 				eventName = "switch"
                 eventUnit = null
-                eventValue = property.value == wyze_property_power_value_on ? "on" : "off"
+                eventValue = propertyValue == wyze_property_power_value_on ? "on" : "off"
                 
 				if (device.currentValue(eventName) != eventValue) {
-					app.logDebug('Updating Property: switch')
+					logInfo('Updating Property: switch')
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -319,10 +281,10 @@ void createDeviceEventsFromPropertyList(List propertyList) {
             case wyze_property_device_online:
                 eventName = "online"
                 eventUnit = null
-                eventValue = property.value == wyze_property_device_online_value_true ? "true" : "false"
+                eventValue = propertyValue == wyze_property_device_online_value_true ? "true" : "false"
                 
 				if (device.currentValue(eventName) != eventValue) {
-					app.logDebug('Updating Property: online')
+					logInfo('Updating Property: online')
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -331,10 +293,10 @@ void createDeviceEventsFromPropertyList(List propertyList) {
             case wyze_property_brightness:
                 eventName = "level"
                 eventUnit = '%'
-                eventValue = property.value
+                eventValue = propertyValue
                 
-				if (device.currentValue(eventName) != eventValue) {
-					app.logDebug('Updating Property: level')
+				if (device.currentValue(eventName).toString() != eventValue.toString()) {
+					logInfo("Updating Property: level - ${device.currentValue(eventName)} != ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -345,10 +307,10 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 					// Set Temperature
 					eventName = "colorTemperature"
 					eventUnit = '°K'
-					eventValue = property.value
+					eventValue = propertyValue
 					
-					if (device.currentValue(eventName) != eventValue) {
-						app.logDebug('Updating Property: colorTemperature')
+					if (device.currentValue(eventName).toString() != eventValue.toString()) {
+						logInfo("Updating Property: colorTemperature - ${device.currentValue(eventName)} != ${eventValue}")
 						app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 					}
 				}   
@@ -358,43 +320,32 @@ void createDeviceEventsFromPropertyList(List propertyList) {
             case wyze_property_rssi:
                 eventName = "rssi"
                 eventUnit = 'db'
-                eventValue = property.value
+                eventValue = propertyValue
 
 				if (device.currentValue(eventName) != eventValue) {
-					app.logDebug('Updating Property: rssi')
-					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-				}
-            break
-
-            // Vacation Mode
-            case wyze_property_vacation_mode:
-                eventName = "vacationMode"
-                eventUnit = null
-                eventValue = property.value == wyze_property_device_vacation_mode_value_true ? "true" : "false"
-
-				if (device.currentValue(eventName) != eventValue) {
-					app.logDebug('Updating Property: vacationMode')
+					// Leaving this one on Debug since it's updated almost every time
+					logDebug('Updating Property: rssi')
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
 
             // Color
             case wyze_property_color:
-				app.logDebug(deviceColorMode)
+				logDebug(deviceColorMode)
 				if (deviceColorMode == 'RGB') {
 					// Set HEX Color
 					eventName = "color"
 					eventUnit = null
-					eventValue = property.value
+					eventValue = propertyValue
 
 					if (device.currentValue(eventName) != eventValue) {
-						app.logDebug('Updating Property: color')
+						logInfo('Updating Property: color')
 						app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 					}
 
-					hsv = hexToHsv(property.value)
-					app.logDebug('hsv')
-					app.logDebug(hsv)
+					hsv = hexToHsv(propertyValue)
+					logDebug('hsv')
+					logDebug(hsv)
 
 					// Set Hue
 					eventName = "hue"
@@ -402,7 +353,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 					eventValue = hsv[0]
 
 					if (device.currentValue(eventName) != eventValue) {
-						app.logDebug('Updating Property: hue')
+						logInfo('Updating Property: hue')
 						app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 					}
 
@@ -412,7 +363,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 					eventValue = hsv[1]
 
 					if (device.currentValue(eventName) != eventValue) {
-						app.logDebug('Updating Property: saturation')
+						logInfo('Updating Property: saturation')
 						app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 					}
 				}
@@ -422,10 +373,10 @@ void createDeviceEventsFromPropertyList(List propertyList) {
             case wyze_property_vacation_mode:
                 eventName = "vacationMode"
                 eventUnit = null
-                eventValue = property.value == wyze_property_device_vacation_mode_true ? "true" : "false"
+                eventValue = propertyValue == wyze_property_device_vacation_mode_true ? "true" : "false"
 
 				if (device.currentValue(eventName) != eventValue) {
-					app.logDebug('Updating Property: vacationMode')
+					logInfo('Updating Property: vacationMode')
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -455,4 +406,24 @@ private getApp() {
 		app = app.getParent()
 	}
 	return app
+}
+
+private void logDebug(message) {
+	app = getApp()
+	app.logDebug("[${device.label}] " + message)
+}
+
+private void logInfo(message) {
+	app = getApp()
+	app.logInfo("[${device.label}] " + message)
+}
+
+private void logWarn(message) {
+	app = getApp()
+	app.logWarn("[${device.label}] " + message)
+}
+
+private void logError(message) {
+	app = getApp()
+	app.logError("[${device.label}] " + message)
 }
