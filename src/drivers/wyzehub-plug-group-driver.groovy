@@ -34,75 +34,61 @@ metadata {
 		author: "Jake Lehner", 
 		importUrl: "https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/drivers/wyzehub-plug-group-driver.groovy"
 	) {
-		// capability "Outlet"
-		// capability "Refresh"
+		capability "Outlet"
+		capability "Refresh"
 
 	}
 
 }
 
 void installed() {
-    parent.logDebug("installed()")
+    app = getApp()
+	app.logDebug("installed()")
 
 	refresh()
 	initialize()
 }
 
 void updated() {
-    parent.logDebug("updated()")
+    app = getApp()
+	app.logDebug("updated()")
     initialize()
 }
 
 void initialize() {
-    parent.logDebug("initialize()")
+    app = getApp()
+	app.logDebug("initialize()")
 }
 
 void parse(String description) {
-	log.warn("Running unimplemented parse for: '${description}'")
+	app = getApp()
+	app.logWarn("Running unimplemented parse for: '${description}'")
 }
 
 def getThisCopyright(){"&copy; 2021 Jake Lehner"}
 
 def refresh() {
-	
+	getChildDevices().each { device -> 
+		device.refresh()
+	}
 }
 
 def on() {
-	getChildDevices.each { device -> 
+	getChildDevices().each { device -> 
 		device.on()
 	}
 }
 
 def off() {
-	getChildDevices.each { device -> 
+	getChildDevices().each { device -> 
 		device.off()
 	}
 }
 
-private void logDebug(message) {
-	parent.logDebug(message)
-}
-
-private void logInfo(message) {
-	parent.logInfo(message)
-}
-
-private void logWarn(message) {
-	parent.logWarn(message)
-}
-
-private void logError(message) {
-	parent.logError(message)
-}
-
-def apiGetDevicePropertyList(String deviceMac, String deviceModel, Closure closure = {}) {
-	parent.apiGetDevicePropertyList(deviceMac, deviceModel, closure)
-}
-
-def apiRunAction(String deviceMac, String deviceModel, String actionKey, Closure closure = {}) {
-	parent.apiRunAction(deviceMac, deviceModel, actionKey, closure)
-}
-
-private def doSendDeviceEvent(com.hubitat.app.DeviceWrapper device, eventName, eventValue, eventUnit) {
-	parent.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+private getApp() {
+	app = getParent()
+	while(app && app.name != "WyzeHub") {
+		app = app.getParent()
+	}
+	return app
 }

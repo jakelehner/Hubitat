@@ -30,7 +30,7 @@ public static final String apiAppVersion() { return "2.19.14" }
 @Field static final String childNamespace = "jakelehner" 
 @Field static final Map groupDriverMap = [
     5: [label: 'Plug Group', driver: 'WyzeHub Plug Group'],
-    //8: [label: 'Color Bulb Group', driver: 'WyzeHub Color Bulb Group'],
+    8: [label: 'Color Bulb Group', driver: 'WyzeHub Color Bulb Group'],
 ]
 @Field static final Map driverMap = [
    'MeshLight': [label: 'Color Bulb', driver: 'WyzeHub Color Bulb'],
@@ -216,13 +216,14 @@ def pageMenu()
 		section('App Options') 
    		{
 			logLevelOptions = [
-				'5' : 'Debug',
-				'4' : 'Info',
-				'2' : 'Warn',
-				'1' : 'Error',
-				'0' : 'Off',
+				'5': 'Debug',
+				'4': 'Info',
+				'2': 'Warn',
+				'1': 'Error',
+				'0': 'Off',
 			]
-			input name: "logLevel", type: "enum", title: "Log Level", required: true, defaultValue: '4', options: logLevelOptions
+			input name: "logLevel", type: "enum", title: "Log Level", required: true, defaultValue: '4', submitOnChange: true, options: logLevelOptions
+
 		}       
       	displayFooter()
 	}	
@@ -249,23 +250,6 @@ def pageAuthSettings() {
 	}	
 }
 
-def pageImportDevices() {
-	logDebug('pageImportDevices()')
-
-	return dynamicPage(
-		name: 'pageImportDevices', 
-		title: "", 
-		install: false, 
-		uninstall: false, 
-		refreshInterval: 0,
-		nextPage: 'pageDoImportDevices'
-	) {
-		section(getFormat('title', "${app.label} - Import Devices")) {
-			paragraph("Click net import <strong>all</strong> supported devices and groups from Wyze...")
-		}
-		
-	}
-}
 
 def pageSelectDeviceGroups() {
     logDebug('pageSelectDeviceGroups()')
@@ -606,16 +590,10 @@ private def addDevices(List deviceMacs) {
 
 private def doSendDeviceEvent(com.hubitat.app.DeviceWrapper device, eventName, eventValue, eventUnit) {
 	logDebug("doSendDeviceEvent()")
-	logDebug(device)
 
 	String descriptionText = "${device.displayName} ${eventName} is ${eventValue}${eventUnit ?: ''}"
-   	logDebug(descriptionText)
 
-    if (eventValue && eventUnit) {
-        eventValue += eventUnit
-    }
-
-	eventData = [
+    eventData = [
 		'name': eventName,
 		'value': eventValue,
         'unit': eventUnit,
@@ -633,7 +611,7 @@ private def doSendDeviceEvent(com.hubitat.app.DeviceWrapper device, eventName, e
 	sendEvent(device, eventData)
 }
 
-def apiGetDevicePropertyList(String deviceMac, String deviceModel, Closure closure = {}}) {
+def apiGetDevicePropertyList(String deviceMac, String deviceModel, Closure closure = {}) {
 	logDebug("apiGetDevicePropertyList()")
 	
 	requestBody = wyzeRequestBody() + [
@@ -643,13 +621,11 @@ def apiGetDevicePropertyList(String deviceMac, String deviceModel, Closure closu
 	]
 
 	apiPost('/app/v2/device/get_property_list', requestBody) { response ->
-		if(closure) {
-            closure(response.data['property_list'] ?: [])
-        }
+		closure(response.data['property_list'] ?: [])
 	}
 }
 
-def apiRunAction(String deviceMac, String deviceModel, String actionKey, closure = {}}) {
+def apiRunAction(String deviceMac, String deviceModel, String actionKey, Closure closure = {}) {
 	logInfo("apiRunAction()")
 	logInfo(['mac': deviceMac, 'model': deviceModel, 'actionKey': actionKey])
 
@@ -662,24 +638,24 @@ def apiRunAction(String deviceMac, String deviceModel, String actionKey, closure
 	]
 
 	apiPost('/app/v2/auto/run_action', requestBody) { response ->
-		logDebug(response)
+		closure(response)
 	}
 }
 
-def apiRunActionList(String deviceMac, String deviceModel, List actionList, callback = null) {
+def apiRunActionList(String deviceNetworkId, String deviceModel, List actionList) {
 	logDebug("apiRunActionList()")
-	logDebug(['mac': deviceMac, 'model': deviceModel, 'actionList': actionList])
+	logDebug(['mac': deviceNetworkId, 'model': deviceModel, 'actionList': actionList])
 
 	List apiActionList = [
 		[
 			'action_key': 'set_mesh_property',
-			'instance_id': (deviceMac),
-			'provider_key': (deviceModel),
+			'instance_id': deviceNetworkId,
+			'provider_key': deviceModel,
 			'action_params': [
 				'list': [
 						[
-							'mac': (deviceMac),
-							'plist': (actionList)
+							'mac': deviceNetworkId,
+							'plist': actionList
 						]
 					]
 			]
@@ -691,12 +667,15 @@ def apiRunActionList(String deviceMac, String deviceModel, List actionList, call
 		'action_list': apiActionList
 	]
 
-	apiPost('/app/v2/auto/run_action_list', requestBody) { response ->
-		logDebug(response)
-	}
+	callbackData = [
+		'deviceNetworkId': deviceNetworkId,
+		'propertyList': actionList
+	]
+
+	asyncapiPost('/app/v2/auto/run_action_list', requestBody, 'deviceEventsCallback', callbackData)
 }
 
-def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId, value, callback = null) {
+def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId, value, Closure closure = {}) {
 	logDebug("setDeviceProperty()")
 	logDebug(['mac': deviceMac, 'model': deviceModel, 'propertyId': propertyId, 'value': value])
 
@@ -707,13 +686,31 @@ def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId
 		'pid': propertyId,
 		'pvalue': value
 	]
+
+	callbackData = [:]
 	
 	apiPost('/app/v2/device/set_property', requestBody) { response ->
-		logDebug(response)
+		closure(response)
 	}
 }
 
-def apiPost(String path, Map body = [], Closure closure) {
+def asyncapiPost(String path, Map body = [:], String callbackMethod = null, Map callbackData = [:]) {
+	logDebug('apiPost()')
+
+	bodyJson = (new JsonBuilder(body)).toString()
+
+    params = [
+		'uri'         : wyzeApiBaseUrl(),
+		'headers'     : wyzeRequestHeaders(),
+		'contentType' : 'application/json',
+		'path'        : path,
+		'body'        : bodyJson
+	]
+
+	asynchttpPost(callbackMethod, params, callbackData) 
+}
+
+def apiPost(String path, Map body = [], Closure closure = {}) {
 	logDebug('apiPost()')
 
 	bodyJson = (new JsonBuilder(body)).toString()
@@ -745,6 +742,25 @@ def apiPost(String path, Map body = [], Closure closure) {
 	} catch (Exception e) {
 		logError("API Call to ${params.uri}${params.path} failed with Exception: ${e}")
 	}
+}
+
+private void deviceEventsCallback(response, data) {
+	logDebug('deviceEventsCallback()')
+	
+	if (!(data.deviceNetworkId && data.propertyList)) {
+		logDebug('Missing deviceNetworkId or propertyList')
+		return
+	}
+
+	device = getChildDevice(data.deviceNetworkId)
+
+	if (!device) {
+		logDebug("Device ${data.deviceNetworkId} not found")
+		return
+	}
+
+	logDebug('calling device.createDeviceEventsFromPropertyList ...')
+	device.createDeviceEventsFromPropertyList(data.propertyList)
 }
 
 private String getPhoneId() {

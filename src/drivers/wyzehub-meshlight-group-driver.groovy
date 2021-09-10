@@ -34,76 +34,114 @@ metadata {
 		author: "Jake Lehner", 
 		importUrl: "https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/drivers/wyzehub-meshlight-group-driver.groovy"
 	) {
-		// capability "Light"
-		// capability "SwitchLevel"
-		// capability "ColorTemperature"
-		// capability "ColorControl"
-		// capability "ColorMode"
-		// capability "Refresh"
+		capability "Light"
+		capability "SwitchLevel"
+		capability "ColorTemperature"
+		capability "ColorControl"
+		capability "ColorMode"
+		capability "Refresh"
 		// capability "LightEffects"
 
 		// command "toggleVacationMode"
 		// command "flashOnce"
-		
-		// attribute "vacationMode", "bool"
-		// attribute "online", "bool"
-		// attribute "rssi", "number"
-		// attrubute "lastRefreshed", "date"
-
 	}
 
 }
 
 void installed() {
-    parent.logDebug("installed()")
+    app = getApp()
+	parent.logDebug("installed()")
 
 	refresh()
 	initialize()
 }
 
 void updated() {
-    parent.logDebug("updated()")
+    app = getApp()
+	app.logDebug("updated()")
     initialize()
 }
 
 void initialize() {
-    parent.logDebug("initialize()")
+    app = getApp()
+	app.logDebug("initialize()")
 }
 
 void parse(String description) {
-	log.warn("Running unimplemented parse for: '${description}'")
+	app = getApp()
+	app.logWarn("Running unimplemented parse for: '${description}'")
 }
 
 def getThisCopyright(){"&copy; 2021 Jake Lehner"}
 
 def refresh() {
-	
+	app = getApp()
+	app.logDebug("refresh()")
+	getChildDevices().each { device -> 
+		device.refresh()
+	}
 }
 
 def on() {
-	
+	app = getApp()
+	app.logDebug("on()")
+	getChildDevices().each { device -> 
+		device.on()
+	}
 }
 
 def off() {
-	
+	app = getApp()
+	app.logDebug("off()")
+	getChildDevices().each { device -> 
+		device.off()
+	}
 }
 
 def setLevel(level, durationSecs = null) {
-	
+	app = getApp()
+	app.logDebug("setLevel()")
+	getChildDevices().each { device -> 
+		device.setLevel(level, durationSecs)
+	}
 }
 
 def setColorTemperature(colortemperature, level = null, durationSecs = null) {
-	
+	app = getApp()
+	app.logDebug("setColorTemperature()")
+	getChildDevices().each { device -> 
+		device.setColorTemperature(colortemperature, level, durationSecs)
+	}
 }
 
 def setColor(colormap) {
-	
+	app = getApp()
+	app.logDebug("setColor()")
+	getChildDevices().each { device -> 
+		device.setColor(colormap)
+	}
 }
 
 def setHue(hue) {
-	
+	app = getApp()
+	app.logDebug("setHue()")
+	getChildDevices().each { device -> 
+		device.setHue(hue)
+	}
 }
 
 def setSaturation(saturation) {
-	
+	app = getApp()
+	app.logDebug("setSaturation()")
+	getChildDevices().each { device -> 
+		device.setSaturation(saturation)
+	}
+}
+
+private getApp() {
+	app = getParent()
+	while(app && app.name != "WyzeHub") {
+		app = app.getParent()
+	}
+	return app
 }
