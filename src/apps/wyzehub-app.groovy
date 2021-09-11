@@ -91,6 +91,7 @@ definition(
 	iconUrl: '',
 	iconX2Url: '',
 	iconX3Url: '',
+	installOnOpen: true,
 	singleInstance: true,
 	oauth: false,
 	importUrl: 'https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/apps/wyzehub-app.groovy'
@@ -100,6 +101,8 @@ preferences
 {
    page(name: 'pageMenu')
    page(name: 'pageAuthSettings')
+   page(name: 'pageDoAuth')
+   page(name: 'pageDoMfaAuth')
    page(name: 'pageSelectDevices')
    page(name: 'pageSelectDeviceGroups')
 }
@@ -122,11 +125,7 @@ def installed()
 def updated() 
 {
 	logDebug('updated()')
-
-	settings.hashedPassword = hashPassword(settings.password)
 	
-	authenticateWyzeAccount()
-
 	if (debugOutput) runIn(300,debugOff) //disable debug logs after 5 min
 	initialize()
 }
@@ -164,9 +163,12 @@ def uninstalled()
 	
 	logInfo("Uninstalling...")
 
+	logInfo('Clearing State...')
+	clearState()
+
 	logInfo("Deleting child devices...")
 	getChildDevices().each { device->
-		logInfo("Deleting device: " + device.deviceNetworkId)
+		logDebug("Deleting device: " + device.deviceNetworkId)
 		deleteChildDevice(device.deviceNetworkId)
 	}
 
@@ -204,33 +206,22 @@ def pageMenu()
 
 	return dynamicPage(
 		name: 'pageMenu', 
-		title: "", 
+		title: "${app.label}", 
 		install: true, 
 		uninstall: true, 
 		refreshInterval: 0
 	) {
-		section(getFormat('title', "${app.label}")) {}
-		// if (state?.serverInstalled == null || state.serverInstalled == false)
-		// {
-		// 	section("<b style=\"color:green\">${app.label} Installed!</b>")
-		// 	{
-		// 		paragraph "Click <i>Done</i> to save then return to ${app.label} to continue."
-		// 	}
-		// 	return
-		// }
 
-		section("") {
+		section() {
 			href(name: 'hrefSelectDeviceGroups', title: 'Select Device Groups',
                description: '', page: 'pageSelectDeviceGroups', image: '')
 			href(name: 'hrefSelectDevices', title: 'Select Devices',
                description: '', page: 'pageSelectDevices', image: '')
         	href(name: 'hrefAuthSettings', title: 'Configure Login Info',
 				description: '', page: 'pageAuthSettings')
-        
-      }
+      	}
 
-		section('App Options') 
-   		{
+		section('App Options') {
 			logLevelOptions = [
 				'5': 'Debug',
 				'4': 'Info',
@@ -252,18 +243,136 @@ def pageAuthSettings() {
 		name: 'pageAuthSettings', 
 		title: "${app.label} Account Info", 
 		install: false, 
-		uninstall: true, 
+		uninstall: false, 
+		refreshInterval: 0,
+		nextPage: 'pageDoAuth'
+	) {
+		section() {
+            input name: 'username', type: 'text', title: 'Username', required: true, submitOnChange: true
+            input name: 'password', type: 'password', title: 'Password', required: true, submitOnChange: true
+        }
+   		displayFooter()
+	}
+}
+
+def pageDoAuth() {
+	logDebug('pageDoAuth()')
+
+	if (!(settings.username && settings.password)) {
+		logError('Made it to "Do Auth" but credentials not set? Forwarding to pageAuthSettings...')
+		return pageAuthSettings()
+	}
+
+	nextPage = 'pageMenu'
+	loggedIn = false
+	mfaEnabled = false
+	clearState()
+	authenticateWyzeAccount(settings.username, settings.password)
+
+	if (state.access_token) {
+		logDebug('access token found')
+		logDebug(state.access_token)
+		loggedIn = true
+	} else if (state.mfa_options) {
+		
+		mfaEnabled = true
+		nextPage = 'pageDoMfaAuth'
+
+		if (state.mfa_options.contains('TotpVerificationCode')) {
+			// TOTP
+			logInfo('TOTP MFA Enabled')
+			mfaTitle = 'TOTP MFA Enabled'
+			mfaText = 'Enter TOTP Code'
+			state.mfa_type = 'TotpVerificationCode'
+		} else if(state.mfa_options.contains('PrimaryPhone')) {
+			// SMS
+			logInfo('SMS MFA Enabled')
+			mfaTitle = 'SMS MFA Enabled'
+			mfaText = 'Enter SMS Code'
+			state.mfa_type = 'PrimaryPhone'
+			sendSmsCode('Primary', state.sms_session_id, state.user_id)
+		} else {
+			logError('No supported MFA Types Found')
+			logDebug(state.mfa_options)
+		}		
+	}
+
+	return dynamicPage(
+		name: 'pageAuthSettings', 
+		title: "${app.label} Authentication", 
+		install: false, 
+		uninstall: false, 
+		refreshInterval: 0,
+		nextPage: nextPage
+	) {
+		
+		if (loggedIn) {
+			section() {
+				paragraph("Logged In!")
+			}
+		} else if (mfaEnabled) {
+			mfaCode = null
+			settings.mfaCode = null
+			section('MFA Enabled') {
+				input name: 'mfaCode', type: 'text', title: mfaText, defaultValue: '', required: true, submitOnChange: false
+			}
+		}
+
+   		displayFooter()
+	}
+}
+
+def pageDoMfaAuth() {
+	logDebug('pageDoMfaAuth()')
+
+	if (state.mfa_type == 'PrimaryPhone') {
+		verificationId = state.sms_session_id
+		verificationCode = settings.mfaCode
+	} else if (state.mfa_type == 'TotpVerificationCode') { 
+		verificationId = state.mfa_details.totp_apps[0]['app_id']
+		verificationCode = settings.mfaCode
+	} else {
+		return 'pageAuthSettings'
+	}
+
+	loggedIn = false
+	authenticateWyzeAccount(
+		settings.username, 
+		settings.password, 
+		state.mfa_type, 
+		verificationId, 
+		verificationCode
+	)
+	
+	if (state.access_token) {
+		logDebug('access token found')
+		loggedIn = true
+	} else {
+		logError('MFA Login Error')
+	}
+
+	return dynamicPage(
+		name: 'pageAuthSettings', 
+		title: "${app.label} Authentication", 
+		install: false, 
+		uninstall: false, 
 		refreshInterval: 0,
 		nextPage: 'pageMenu'
 	) {
-		section(getFormat('title', "Auth Settings")) {}
-		section {
-            input name: 'username', type: 'text', title: 'Username', required: true, submitOnChange: true
-            input name: 'password', type: 'password', title: 'Password', required: true, submitOnChange: true
-			input name: 'mfaCode', type: 'password', title: 'MFA Code', required: false, submitOnChange: true
-        }
+		
+		if (loggedIn) {
+			section() {
+				paragraph("Logged In!")
+			}
+		} else {
+			section() {
+				"Failed logging in with MFA."
+			}
+		}
+
    		displayFooter()
-	}	
+	}
+
 }
 
 def pageSelectDeviceGroups() {
@@ -294,9 +403,7 @@ def pageSelectDeviceGroups() {
 			
 			logDebug("${group.group_name} (${networkId}) found. Adding to selection list...")
 			
-			Map newGroup = [:]
-			newGroup << [(group.group_id): "[${groupType.label}] ${group.group_name}"]
-			newGroups << newGroup
+			newGroups << [(group.group_id): "[${groupType.label}] ${group.group_name}"]
 		}
 
 		// Sort
@@ -325,14 +432,14 @@ def pageSelectDeviceGroups() {
 				input(name: "btnDeviceRefresh", type: "button", title: "Refresh", submitOnChange: true)
 			}
 		} else {
-			section(getFormat('title', 'Add Device Groups')) {
+			section('Add Device Groups') {
 				input(name: "deviceGroupsToAdd", type: "enum", title: "Select Device Groups to add:",
 					submitOnChange: false, multiple: true, options: newGroups)
 			}
 		}
 
 		if(unsupportedGroups) {
-			section(getFormat('title', 'Unsupported Device Groups')) {
+			section('Unsupported Device Groups') {
 				unsupportedGroups.each{ group ->
 					paragraph " - [${group.group_type_id}] ${group.group_name}"
 				}
@@ -352,8 +459,7 @@ def pageSelectDevices() {
 		
 	List newDevices = []
 	List unsupportedDevices = []
-	Map unclaimedDevices = [:];
-
+	
 	if (deviceCache.devices) {
 		deviceCache.devices.each { mac, device ->
 			productType = driverMap[device.product_type]
@@ -376,9 +482,7 @@ def pageSelectDevices() {
 			
 			logDebug("${device.nickname} (${device.mac}) found. Adding to selection list...")
 			
-			Map newDevice = [:]
-			newDevice << [(device.mac): "[${productType.label}] ${device.nickname}"]
-			newDevices << newDevice
+			newDevices << [(device.mac): "[${productType.label}] ${device.nickname}"]
 		}
 
 		// Sort
@@ -407,14 +511,14 @@ def pageSelectDevices() {
 				input(name: "btnDeviceRefresh", type: "button", title: "Refresh", submitOnChange: true)
 			}
 		} else {
-			section(getFormat('title', 'Add Devices')) {
+			section('Add Devices') {
 				input(name: "devicesToAdd", type: "enum", title: "Select Devices to add:",
 					submitOnChange: false, multiple: true, options: newDevices)
 			}
 		}
 
 		if(unsupportedDevices) {
-			section(getFormat('title', 'Unsupported Devices')) {
+			section('Unsupported Devices') {
 				unsupportedDevices.each{ device ->
 					paragraph " - [${device.product_type}] ${device.nickname}"
 				}
@@ -432,59 +536,88 @@ def displayFooter() {
     }
 }
 
-def getFormat(type, myText=""){
-	if(type == "header-green") return "<div style='color:#ffffff;font-weight: bold;background-color:#81BC00;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${myText}</div>"
+def getFormat(type){
 	if(type == "line") return "\n<hr style='background-color:#1A77C9; height: 1px; border: 0;'></hr>"
-	if(type == "title") return "<h4 style='color:#1A77C9;font-weight: bold'>${myText}</h4>"
 }
 
 //  --------------
 // | Biznas Logic |
 //  --------------
 
-def authenticateWyzeAccount() {
-    logDebug('authenticateWyzeAccount()')
+def authenticateWyzeAccount(String username, String password, String mfaType = null, String verificationId = null, String verificationCode = null) {
+    logInfo('Authenticating User...')
 
-    if ((settings.username==null) || (settings.hashedPassword==null)) { 
-		logDebug('Missing username or password')
-		return false 
-	}
-
-def params = [
-	'uri'                : wyzeAuthBaseUrl(),
-	'headers'            : wyzeRequestHeaders(),
-	'requestContentType' : "application/json; charset=utf-8",
-	'path'			     : "/user/login",
-	'body' : [
-		'email': settings.username,
-		'password': settings.hashedPassword
+	body = [
+		'email': username,
+		'password': hashPassword(password)
 	]
-]
 
-try {
-	httpPost(params) { response ->
-		logDebug("Login Request was OK: ${response.status}")
-		state.access_token   = "${response.data?.access_token}"
-		state.refresh_token  = "${response.data?.refresh_token}"
-		state.user_id        = "${response.data?.user_id}"
-		state.mfa_options 	 = "${response.data?.mfa_options}"
-		state.mfa_details 	 = "${response.data?.mfa_details}"
-		state.sms_session_id = "${response.data?.sms_session_id}"
-		state.statusText	 = "Success"
+	if (mfaType) {
+		body['mfa_type'] = mfaType
+		body['verification_id'] = verificationId
+		body['verification_code'] = verificationCode
 	}
-} catch (Exception e) {
-	logError("Login Failed with Exception: ${e}")
-	state.access_token   = null
-	state.refresh_token  = null
-	state.user_id        = null
-	state.mfa_options 	 = null
-	state.mfa_details 	 = null
-	state.sms_session_id = null
-	state.statusText = "Login Exception: '${e}'"
-	return false
+
+	logDebug(body)
+
+    params = [
+		'uri'                	: wyzeAuthBaseUrl(),
+		'headers'            	: wyzeRequestHeaders(),
+		'requestContentType' 	: "application/json; charset=utf-8",
+		'path'			     	: "/user/login",
+		'body' 					: body
+	]
+
+	try {
+		httpPost(params) { response ->
+			logInfo("Login Request was OK: ${response.status}")
+			logDebug(response.data)
+			state.access_token   = response.data?.access_token
+			state.refresh_token  = response.data?.refresh_token
+			state.user_id        = response.data?.user_id
+			state.mfa_options 	 = response.data?.mfa_options
+			state.mfa_details 	 = response.data?.mfa_details
+			state.sms_session_id = response.data?.sms_session_id
+			state.statusText	 = "Success"
+		}
+	} catch (Exception e) {
+		logError("Login Failed with Exception: ${e}")
+		clearState()
+		state.statusText = "Login Exception: '${e}'"
+		return false
+	}
+
+		return true
 }
 
-    return true
+private def sendSmsCode(String mfaPhoneType, String smsSessionId, String userId) {
+	logInfo('Sending SMS Code to ' + mfaPhoneType)
+
+	params = [
+		'uri'                : wyzeAuthBaseUrl(),
+		'headers'            : wyzeRequestHeaders(),
+		'requestContentType' : "application/json; charset=utf-8",
+		'path'			     : "/user/login/sendSmsCode",
+		'query' : [
+			'mfaPhoneType': mfaPhoneType,
+			'sessionId': smsSessionId,
+			'userId': userId,
+		]
+	]
+
+	try {
+		httpPost(params) { response ->
+			logDebug("Login Request was OK: ${response.status}")
+			state.sms_session_id = "${response.data?.session_id}"
+		}
+	} catch (Exception e) {
+		logError("Login Failed with Exception: ${e}")
+		clearState()
+		state.statusText = "Send SMS Exception: '${e}'"
+		return false
+	}
+
+		return true
 }
 
 private def updateDeviceCache(Closure closure = null) {
@@ -820,6 +953,16 @@ private String hashPassword(String password) {
 
 private String md5(String str) {
 	return MessageDigest.getInstance("MD5").digest(str.bytes).encodeHex().toString()
+}
+
+private clearState() {
+	state.access_token   = null
+	state.refresh_token  = null
+	state.user_id        = null
+	state.mfa_options 	 = null
+	state.mfa_details 	 = null
+	state.sms_session_id = null
+	state.statusText     = null
 }
 
 void appButtonHandler(btn) {
