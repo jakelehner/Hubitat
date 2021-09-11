@@ -881,6 +881,10 @@ def asyncapiPost(String path, Map body = [:], String callbackMethod = null, Map 
 def apiPost(String path, Map body = [], Closure closure = {}) {
 	logDebug('apiPost()')
 
+	if (!(body.access_token || body.refresh_token)) {
+		throw new Exception('No Auth Tokens. Reauthenticate.')
+	}
+
 	bodyJson = (new JsonBuilder(body)).toString()
 
     params = [
@@ -895,9 +899,18 @@ def apiPost(String path, Map body = [], Closure closure = {}) {
 		httpPost(params) { response -> 
 			if (response.data.code == "2001") {
 				// TODO - reauthenticate
-				logError("apiPost error! AccessTokenError")
+				logError("Access Token Invalid. Attempting to refresh token.")
                 logDebug(response.data)
-				throw new Exception("Invalid Response Data Code: ${response.data.code}")
+				refreshAccessTeoken() { refreshTokenResponse ->
+					apiPost(path, body, closure)
+				}
+			}
+
+			if (response.data.code == "2002") {
+				// Refresh Token Error
+				logError("Refresh Token Invalid.")
+				clearState()
+                throw new Exception("Refresh Token Invalid")
 			}
 
 			if (response.data.code != "1") {
@@ -905,10 +918,24 @@ def apiPost(String path, Map body = [], Closure closure = {}) {
                 logDebug(response.data)
 				throw new Exception("Invalid Response Data Code: ${response.data.code}")
 			}
+
 			closure(response.data) 
 		}
 	} catch (Exception e) {
 		logError("API Call to ${params.uri}${params.path} failed with Exception: ${e}")
+	}
+}
+
+private refreshAccessTeoken(Closure closure = {}) {
+	requestBody = wyzeRequestBody() + [
+		'sv': 'd91914dd28b7492ab9dd17f7707d35a3',
+		'refresh_token': state.refresh_token
+	]
+
+	apiPost('/app/user/refresh_token', requestBody) { response ->
+		state.access_token = response.access_token
+		state.refresh_token = response.refresh_token
+		closure(response)
 	}
 }
 
