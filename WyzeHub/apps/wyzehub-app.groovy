@@ -314,7 +314,7 @@ def pageDoAuth() {
 			mfaCode = null
 			settings.mfaCode = null
 			section('MFA Enabled') {
-				input name: 'mfaCode', type: 'text', title: mfaText, defaultValue: '', required: true, submitOnChange: false
+				input name: 'mfaCode', type: 'password', title: mfaText, defaultValue: '', required: true, submitOnChange: false
 			}
 		}
 
@@ -772,9 +772,12 @@ def apiGetDevicePropertyList(String deviceMac, String deviceModel, Closure closu
     	'device_model': deviceModel
 	]
 
-	apiPost('/app/v2/device/get_property_list', requestBody) { response ->
-		closure(response.data['property_list'] ?: [])
-	}
+	callbackData = [
+		'deviceNetworkId': deviceMac
+	]
+
+	asyncapiPost('/app/v2/device/get_property_list', requestBody, 'deviceEventsCallback', callbackData)
+
 }
 
 def apiRunAction(String deviceMac, String deviceModel, String actionKey, Closure closure = {}) {
@@ -941,8 +944,12 @@ private refreshAccessTeoken(Closure closure = {}) {
 
 private void deviceEventsCallback(response, data) {
 	logDebug('deviceEventsCallback()')
+
+	responseData = parseJson(response.data)
+
+	propertyList = data.propertyList ?: responseData.data.property_list ?: null
 	
-	if (!(data.deviceNetworkId && data.propertyList)) {
+	if (!(data.deviceNetworkId && propertyList)) {
 		logDebug('Missing deviceNetworkId or propertyList')
 		return
 	}
@@ -959,8 +966,7 @@ private void deviceEventsCallback(response, data) {
 		return
 	}
 
-	logDebug('calling device.createDeviceEventsFromPropertyList ...')
-	device.createDeviceEventsFromPropertyList(data.propertyList)
+	device.createDeviceEventsFromPropertyList(propertyList)
 }
 
 private String getPhoneId() {

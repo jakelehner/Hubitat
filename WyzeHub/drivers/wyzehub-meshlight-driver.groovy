@@ -249,6 +249,7 @@ def setSaturation(saturation) {
 void createDeviceEventsFromPropertyList(List propertyList) {
     app = getApp()
 	logDebug("createEventsFromPropertyList()")
+	logDebug(propertyList)
 
     String eventName, eventUnit
     def eventValue // could be String or number
@@ -256,9 +257,11 @@ void createDeviceEventsFromPropertyList(List propertyList) {
     // Feels silly to loop through this twice but we need colorMode early.
     // TODO Better way to search propertyList for element with pid = P1508?
     propertyList.each { property ->
+	
+		propertyValue = property.value ?: property.pvalue ?: null
         if(property.pid == wyze_property_color_mode) {
 			
-            deviceColorMode = (property.value == "1" ? 'RGB' : 'CT')
+            deviceColorMode = (propertyValue == "1" ? 'RGB' : 'CT')
             
             if (device.hasCapability('ColorMode')) {
                 eventName = "colorMode"
@@ -266,7 +269,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
                 eventValue = deviceColorMode
 
 				if (device.currentValue(eventName) != eventValue) {
-					logDebug('Updating Property: colorMode')
+					logInfo('Updating Property: colorMode')
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             }
@@ -276,7 +279,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
     propertyList.each { property ->
 	
 		propertyValue = property.value ?: property.pvalue ?: null
-        switch(property.pid) {
+		switch(property.pid) {
             // Switch State
             case wyze_property_power:
 				eventName = "switch"
@@ -343,7 +346,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 
             // Color
             case wyze_property_color:
-				logDebug(deviceColorMode)
+								
 				if (deviceColorMode == 'RGB') {
 					// Set HEX Color
 					eventName = "color"
@@ -356,9 +359,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 					}
 
 					hsv = hexToHsv(propertyValue)
-					logDebug('hsv')
-					logDebug(hsv)
-
+					
 					// Set Hue
 					eventName = "hue"
 					eventUnit = null
