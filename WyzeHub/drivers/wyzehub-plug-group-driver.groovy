@@ -33,7 +33,7 @@
 import groovy.transform.Field
 import hubitat.helper.ColorUtils
 
-public static String version() { return "v1.0.2"  }
+public static String version() { return "v1.0.3"  }
 
 public String deviceModel() { return '' }
 

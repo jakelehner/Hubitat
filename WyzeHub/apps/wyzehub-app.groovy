@@ -43,7 +43,7 @@ import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static final String version() { return "v1.0.2" }
+public static final String version() { return "v1.0.3" }
 
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }
