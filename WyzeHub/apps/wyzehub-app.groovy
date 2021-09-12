@@ -43,7 +43,7 @@ import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static final String version() { return "v1.0.0" }
+public static final String version() { return "v1.0.1" }
 
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }
@@ -104,7 +104,7 @@ definition(
 	installOnOpen: true,
 	singleInstance: true,
 	oauth: false,
-	importUrl: 'https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/apps/wyzehub-app.groovy'
+	importUrl: 'https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/apps/wyzehub-app.groovy'
 )
 
 preferences 
@@ -125,6 +125,7 @@ def installed()
 {
 	logDebug('installed()')
 
+	clearState()
 	state.serverInstalled = true
 
 	initialize()
@@ -635,7 +636,6 @@ private def updateDeviceCache(Closure closure = null) {
 	state.deviceCache = [
 		'groups': [:],
 		'devices': [:],
-		'deviceParentMap': [:],
 		'groupDeviceMacs': []
 	]
 	requestBody = wyzeRequestBody() + ['sv': 'c417b62d72ee44bf933054bdca183e77']
@@ -953,7 +953,7 @@ private refreshAccessTeoken(Closure closure = {}) {
 }
 
 private void deviceEventsCallback(response, data) {
-	logDebug('deviceEventsCallback()')
+	logDebug("deviceEventsCallback() for device ${data.deviceNetworkId}")
 
 	responseData = parseJson(response.data)
 
@@ -966,6 +966,7 @@ private void deviceEventsCallback(response, data) {
 
 	parentNetworkId = state.deviceCache.deviceParentMap[data.deviceNetworkId]
 	if (parentNetworkId) {
+		logDebug("Device ${data.deviceNetworkId} not found")
 		device = getChildDevice(parentNetworkId).getChildDevice(data.deviceNetworkId)
 	} else {
 		device = getChildDevice(data.deviceNetworkId)
