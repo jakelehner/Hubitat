@@ -32,7 +32,7 @@
 
 import groovy.transform.Field
 
-public static String version() {  return "v1.0.2"  }
+public static String version() {  return "v1.0.1"  }
 
 public String deviceModel() { return 'WLPP1CFH' }
 
@@ -171,7 +171,6 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 					eventValue = "off"
 				}
 
-				logInfo([eventName, property.pvalue, propertyValue, eventValue])
 				if (device.currentValue(eventName) != eventValue) {
 					logDebug('Updating Property: switch')
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
