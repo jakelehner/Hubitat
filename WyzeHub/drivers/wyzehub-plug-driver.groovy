@@ -32,7 +32,7 @@
 
 import groovy.transform.Field
 
-public static String version() {  return "v1.0.3"  }
+public static String version() {  return "v1.0.4"  }
 
 public String deviceModel() { return 'WLPP1CFH' }
 
@@ -145,7 +145,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
                 eventValue = deviceColorMode
 
 				if (device.currentValue(eventName) != eventValue) {
-					logDebug('Updating Property: colorMode')
+					logDebug("Updating Property 'colorMode' to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             }
@@ -172,7 +172,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 				}
 
 				if (device.currentValue(eventName) != eventValue) {
-					logDebug('Updating Property: switch')
+					logDebug("Updating Property 'switch' to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -184,7 +184,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
                 eventValue = propertyValue == wyze_property_device_online_value_true ? "true" : "false"
                 
 				if (device.currentValue(eventName) != eventValue) {
-					logDebug('Updating Property: online')
+					logDebug("Updating Property 'online' to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -196,7 +196,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
                 eventValue = propertyValue
 
 				if (device.currentValue(eventName) != eventValue) {
-					logDebug('Updating Property: rssi')
+					logDebug("Updating Property 'rssi' to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -208,7 +208,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
                 eventValue = propertyValue == wyze_property_device_vacation_mode_value_true ? "true" : "false"
 
 				if (device.currentValue(eventName) != eventValue) {
-					logDebug('Updating Property: vacationMode')
+					logDebug("Updating Property 'vacationMode' to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break

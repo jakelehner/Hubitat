@@ -33,7 +33,7 @@
 import groovy.transform.Field
 import hubitat.helper.ColorUtils
 
-public static String version() { return "v1.0.3"  }
+public static String version() { return "v1.0.4"  }
 
 public String deviceModel() { return 'WLPA19C' }
 
@@ -269,7 +269,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
                 eventValue = deviceColorMode
 
 				if (device.currentValue(eventName) != eventValue) {
-					logInfo('Updating Property: colorMode')
+					logInfo("Updating Property 'colorMode' to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             }
@@ -287,7 +287,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
                 eventValue = propertyValue == wyze_property_power_value_on ? "on" : "off"
                 
 				if (device.currentValue(eventName) != eventValue) {
-					logInfo('Updating Property: switch')
+					logInfo("Updating Property 'switch' to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -299,7 +299,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
                 eventValue = propertyValue == wyze_property_device_online_value_true ? "true" : "false"
                 
 				if (device.currentValue(eventName) != eventValue) {
-					logInfo('Updating Property: online')
+					logInfo("Updating Property 'online' to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -311,7 +311,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
                 eventValue = propertyValue
                 
 				if (device.currentValue(eventName).toString() != eventValue.toString()) {
-					logInfo("Updating Property: level - ${device.currentValue(eventName)} != ${eventValue}")
+					logInfo("Updating Property 'level' to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -325,7 +325,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 					eventValue = propertyValue
 					
 					if (device.currentValue(eventName).toString() != eventValue.toString()) {
-						logInfo("Updating Property: colorTemperature - ${device.currentValue(eventName)} != ${eventValue}")
+						logInfo("Updating Property 'colorTemperature' to ${eventValue}")
 						app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 					}
 				}   
@@ -339,7 +339,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 
 				if (device.currentValue(eventName) != eventValue) {
 					// Leaving this one on Debug since it's updated almost every time
-					logDebug('Updating Property: rssi')
+					logDebug("Updating Property: 'rssi' to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -354,7 +354,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 					eventValue = propertyValue
 
 					if (device.currentValue(eventName) != eventValue) {
-						logInfo('Updating Property: color')
+						logInfo("Updating Property 'color' to ${eventValue}")
 						app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 					}
 
@@ -366,7 +366,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 					eventValue = hsv[0]
 
 					if (device.currentValue(eventName) != eventValue) {
-						logInfo('Updating Property: hue')
+						logInfo("Updating Property 'hue' to ${eventValue}")
 						app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 					}
 
@@ -376,7 +376,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 					eventValue = hsv[1]
 
 					if (device.currentValue(eventName) != eventValue) {
-						logInfo('Updating Property: saturation')
+						logInfo("Updating Property 'saturation' to ${eventValue}")
 						app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 					}
 				}
@@ -389,7 +389,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
                 eventValue = propertyValue == wyze_property_device_vacation_mode_true ? "true" : "false"
 
 				if (device.currentValue(eventName) != eventValue) {
-					logInfo('Updating Property: vacationMode')
+					logInfo("Updating Property 'vacationMode' to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
