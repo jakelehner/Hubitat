@@ -32,7 +32,7 @@
 
 import groovy.transform.Field
 
-public static String version() {  return "v1.0.1"  }
+public static String version() {  return "v1.0.2"  }
 
 public String deviceModel() { return 'WLPP1CFH' }
 

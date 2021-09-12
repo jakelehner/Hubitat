@@ -43,7 +43,7 @@ import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static final String version() { return "v1.0.1" }
+public static final String version() { return "v1.0.2" }
 
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }
@@ -125,11 +125,10 @@ def installed()
 {
 	logDebug('installed()')
 
-	clearState()
+	clearState()	
+	initialize()
 	state.serverInstalled = true
 
-	initialize()
-	
 	logInfo('App Installed')
 }
 
@@ -149,9 +148,12 @@ def initialize()
 		state.deviceCache = [
 			'groups': [:],
 			'devices': [:],
-			'deviceParentMap': [:],
 			'groupDeviceMacs': []
 		]
+	}
+
+	if (!state.deviceParentMap) {
+		state.deviceParentMap = [:]
 	}
 
 	if(settings['addDevices']) {
@@ -719,7 +721,7 @@ private def addDeviceGroups(List deviceGroupIds) {
                         deviceModel: (deviceFromCache.product_model)
                     ]
 
-					state.deviceCache.deviceParentMap[mac] = groupNetworkId
+					state.deviceParentMap[mac] = groupNetworkId
                     groupDevice.addChildDevice(childNamespace, driver, deviceFromCache.mac, deviceProps)
                 }
             }
@@ -964,7 +966,7 @@ private void deviceEventsCallback(response, data) {
 		return
 	}
 
-	parentNetworkId = state.deviceCache.deviceParentMap[data.deviceNetworkId]
+	parentNetworkId = state.deviceParentMap[data.deviceNetworkId]
 	if (parentNetworkId) {
 		logDebug("Device ${data.deviceNetworkId} not found")
 		device = getChildDevice(parentNetworkId).getChildDevice(data.deviceNetworkId)
