@@ -1,5 +1,5 @@
 /*
- * Import URL: https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/drivers/wyzehub-meshlight-driver.groovy
+ * Import URL: https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-meshlight-driver.groovy
  *
  * DON'T BE A DICK PUBLIC LICENSE
  *
@@ -33,7 +33,7 @@
 import groovy.transform.Field
 import hubitat.helper.ColorUtils
 
-public static String version() { return "v0.0.1"  }
+public static String version() { return "v1.0.0"  }
 
 public String deviceModel() { return 'WLPA19C' }
 
@@ -65,7 +65,7 @@ metadata {
 		name: "WyzeHub Color Bulb", 
 		namespace: "jakelehner", 
 		author: "Jake Lehner", 
-		importUrl: "https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/drivers/wyzehub-meshlight-driver.groovy"
+		importUrl: "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-meshlight-driver.groovy"
 	) {
 		capability "Light"
 		capability "SwitchLevel"

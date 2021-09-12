@@ -1,5 +1,5 @@
 /*
- * Import URL: https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/drivers/wyzehub-meshlight-group-driver.groovy
+ * Import URL: https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-group-driver.groovy
  *
  * DON'T BE A DICK PUBLIC LICENSE
  *
@@ -33,7 +33,7 @@
 import groovy.transform.Field
 import hubitat.helper.ColorUtils
 
-public static String version() { return "v0.0.1"  }
+public static String version() { return "v1.0.0"  }
 
 public String deviceModel() { return '' }
 
@@ -46,7 +46,7 @@ metadata {
 		name: "WyzeHub Plug Group", 
 		namespace: "jakelehner", 
 		author: "Jake Lehner", 
-		importUrl: "https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/drivers/wyzehub-plug-group-driver.groovy"
+		importUrl: "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-group-driver.groovy"
 	) {
 		capability "Outlet"
 		capability "Refresh"

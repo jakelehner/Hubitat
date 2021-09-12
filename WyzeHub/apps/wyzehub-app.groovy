@@ -1,5 +1,5 @@
 /*
- * Import URL: https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/apps/wyzehub-app.groovy
+ * Import URL: https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/apps/wyzehub-app.groovy
  *
  * DON'T BE A DICK PUBLIC LICENSE
  *
@@ -28,6 +28,14 @@
  * 3. Code is provided with no warranty. Using somebody else's code and bitching when it goes wrong makes
  *    you a DONKEY dick. Fix the problem yourself. A non-dick would submit the fix back.
  *
+ * ===================================================================================
+ * 
+ * Last Modified: 2021-09-12
+ * 
+ * Release Notes:
+ *   v1.0.0  - Initial Release. 
+ *           - Support for Color Bulbs, Plugs, and associated groups.
+ *  
  */
 
 import groovy.json.JsonBuilder
@@ -35,11 +43,13 @@ import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static final String version() { return "v0.0.1" }
+public static final String version() { return "v1.0.0" }
+
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }
 
 @Field static final String childNamespace = "jakelehner" 
+
 @Field static final Map groupDriverMap = [
     5: [label: 'Plug Group', driver: 'WyzeHub Plug Group'],
     8: [label: 'Color Bulb Group', driver: 'WyzeHub Color Bulb Group'],

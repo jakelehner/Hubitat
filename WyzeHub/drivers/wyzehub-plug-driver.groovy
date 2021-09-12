@@ -1,5 +1,5 @@
 /*
- * Import URL: https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/drivers/wyzehub-plug-driver.groovy
+ * Import URL: https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-driver.groovy
  *
  * DON'T BE A DICK PUBLIC LICENSE
  *
@@ -32,7 +32,7 @@
 
 import groovy.transform.Field
 
-public static String version() {  return "v0.0.1"  }
+public static String version() {  return "v1.0.0"  }
 
 public String deviceModel() { return 'WLPP1CFH' }
 
@@ -56,7 +56,7 @@ metadata {
 		name: "WyzeHub Plug", 
 		namespace: "jakelehner", 
 		author: "Jake Lehner", 
-		importUrl: "https://raw.githubusercontent.com/jakelehner/hubitat-WyzeHub/master/src/drivers/wyzehub-plug-driver.groovy"
+		importUrl: "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-driver.groovy"
 	) {
 		capability "Outlet"
 		capability "Refresh"
