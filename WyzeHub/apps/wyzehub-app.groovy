@@ -43,7 +43,7 @@ import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static final String version() { return "v1.0.4" }
+public static final String version() { return "v1.0.5" }
 
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }
@@ -192,7 +192,7 @@ def uninstalled()
 // | Pages |
 //  -------
 
-def getThisCopyright(){'&copy; 2021 Your Mom'}
+def getCopyright() {'&copy; 2021 Your Mom'}
 
 def pageMenu() 
 {
@@ -545,7 +545,7 @@ def pageSelectDevices() {
 def displayFooter() {
 	section{
 		paragraph getFormat("line")
-		paragraph "<div style='color:#1A77C9;text-align:center;font-weight:small;font-size:9px'>Developed by: Jake<br/>Version Status: $state.Status<br>Current Version: ${version()} -  ${thisCopyright}</div>"
+		paragraph "<div style='color:#1A77C9;text-align:center;font-weight:small;font-size:9px'>Developed by: Jake<br/>Current Version: ${version()} -  ${getCopyright()}</div>"
     }
 }
 

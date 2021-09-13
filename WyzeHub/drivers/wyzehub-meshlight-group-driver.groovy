@@ -33,7 +33,7 @@
 import groovy.transform.Field
 import hubitat.helper.ColorUtils
 
-public static String version() { return "v1.0.4"  }
+public static String version() { return "v1.0.5"  }
 
 public String deviceModel() { return '' }
 
@@ -56,6 +56,16 @@ metadata {
 		capability "Refresh"
 		// capability "LightEffects"
 
+		command(
+			"setColorHEX", 
+			[
+				[
+					"name": "HEX Color*", 
+					"type": "STRING", 
+					"description": "Color in HEX no #"
+				]
+			]
+		)
 		// command "toggleVacationMode"
 		// command "flashOnce"
 	}
@@ -85,8 +95,6 @@ void parse(String description) {
 	app = getApp()
 	logWarn("Running unimplemented parse for: '${description}'")
 }
-
-def getThisCopyright(){"&copy; 2021 Jake Lehner"}
 
 def refresh() {
 	app = getApp()
@@ -133,6 +141,14 @@ def setColor(colormap) {
 	logDebug("setColor()")
 	getChildDevices().each { device -> 
 		device.setColor(colormap)
+	}
+}
+
+def setColorHEX(String hexColor) {
+	app = getApp()
+	logDebug("setColor()")
+	getChildDevices().each { device -> 
+		device.setColorHEX(hexColor)
 	}
 }
 

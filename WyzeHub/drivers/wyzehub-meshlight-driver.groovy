@@ -33,7 +33,7 @@
 import groovy.transform.Field
 import hubitat.helper.ColorUtils
 
-public static String version() { return "v1.0.4"  }
+public static String version() { return "v1.0.5"  }
 
 public String deviceModel() { return 'WLPA19C' }
 
@@ -75,6 +75,16 @@ metadata {
 		capability "Refresh"
 		// capability "LightEffects"
 
+		command(
+			"setColorHEX", 
+			[
+				[
+					"name": "HEX Color*", 
+					"type": "STRING", 
+					"description": "Color in HEX no #"
+				]
+			]
+		)
 		// command "toggleVacationMode"
 		// command "flashOnce"
 		
@@ -110,8 +120,6 @@ void parse(String description) {
 	log.warn("Running unimplemented parse for: '${description}'")
 }
 
-def getThisCopyright(){"&copy; 2021 Jake Lehner"}
-
 def refresh() {
 	app = getApp()
 	logInfo("Refresh Device")
@@ -122,7 +130,7 @@ def refresh() {
 
 def on() {
 	app = getApp()
-	logInfo("'On' Pressed for device ${device.label}")
+	logInfo("'On' Pressed")
 	actions = [
 		[
 			'pid': wyze_property_power,
@@ -135,7 +143,7 @@ def on() {
 
 def off() {
 	app = getApp()
-	logInfo("'Off' Pressed for device ${device.label}")
+	logInfo("'Off' Pressed")
 	actions = [
 		[
 			'pid': wyze_property_power,
@@ -148,7 +156,7 @@ def off() {
 
 def setLevel(level, durationSecs = null) {
 	app = getApp()
-	logInfo("setLevel() on device ${device.label}")
+	logInfo("setLevel() Pressed")
 
 	level = level.min(100).max(0)
 
@@ -162,17 +170,21 @@ def setLevel(level, durationSecs = null) {
 	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
 }
 
-def setColorTemperature(colortemperature, level = null, durationSecs = null) {
+def setColorTemperature(colorTemperature, level = null, durationSecs = null) {
 	app = getApp()
-	logInfo("setColorTemperature() on device ${device.label}")
+	logInfo("setColorTemperature() Pressed")
 
 	// Valid range 1800-6500
-	colortemperature = colortemperature.min(6500).max(1800)
+	if (colorTemperature < 1800 ) {
+		colorTemperature = 1800
+	} else if (colorTemperature > 6500) {
+		colorTemperature = 6500
+	}
 
 	actions = [
 		[
 			'pid': wyze_property_color_temp,
-			'pvalue': colortemperature.toString()
+			'pvalue': colorTemperature.toString()
 		]
 	]
 
@@ -190,11 +202,11 @@ def setColorTemperature(colortemperature, level = null, durationSecs = null) {
 
 def setColor(colormap) {
 	app = getApp()
-	logInfo("setColor() on device ${device.label}")
+	logInfo("setColor() Pressed")
 	
 	hex = hsvToHexNoHash(colormap.hue, colormap.saturation, colormap.level)
 	
-	logDebug('Setting color to ' + hex)
+	logDebug('Setting color to HEX ' + hex)
 
 	actions = [
 		[
@@ -206,9 +218,25 @@ def setColor(colormap) {
 	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
 }
 
+def setColorHEX(String hexColor) {
+	app = getApp()
+	logInfo("setColorHEX() Pressed")
+	
+	logDebug('Setting color to HEX ' + hexColor)
+
+	actions = [
+		[
+			'pid': wyze_property_color,
+			'pvalue': hexColor
+		]
+	]
+
+	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
+}
+
 def setHue(hue) {
 	app = getApp()
-	logInfo("setHue() on device ${device.label}")
+	logInfo("setHue() Pressed")
 
 	// Must be between 0 and 100
 	hue = hue.min(100).max(0)
@@ -228,7 +256,7 @@ def setHue(hue) {
 
 def setSaturation(saturation) {
 	app = getApp()
-	logInfo("setSaturation() on device ${device.label}")
+	logInfo("setSaturation() Pressed")
 
 	// Must be between 0 and 100
 	saturation = saturation.min(100).max(0)
@@ -249,7 +277,6 @@ def setSaturation(saturation) {
 void createDeviceEventsFromPropertyList(List propertyList) {
     app = getApp()
 	logDebug("createEventsFromPropertyList()")
-	logDebug(propertyList)
 
     String eventName, eventUnit
     def eventValue // could be String or number

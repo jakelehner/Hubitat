@@ -33,7 +33,7 @@
 import groovy.transform.Field
 import hubitat.helper.ColorUtils
 
-public static String version() { return "v1.0.4"  }
+public static String version() { return "v1.0.5"  }
 
 public String deviceModel() { return '' }
 
@@ -78,8 +78,6 @@ void parse(String description) {
 	app = getApp()
 	logWarn("Running unimplemented parse for: '${description}'")
 }
-
-def getThisCopyright(){"&copy; 2021 Jake Lehner"}
 
 def refresh() {
 	getChildDevices().each { device -> 

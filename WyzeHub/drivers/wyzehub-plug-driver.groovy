@@ -32,7 +32,7 @@
 
 import groovy.transform.Field
 
-public static String version() {  return "v1.0.4"  }
+public static String version() {  return "v1.0.5"  }
 
 public String deviceModel() { return 'WLPP1CFH' }
 
@@ -95,8 +95,6 @@ void initialize() {
 void parse(String description) {
 	log.warn("Running unimplemented parse for: '${description}'")
 }
-
-def getThisCopyright() { "&copy; 2021 Jake Lehner" }
 
 def refresh() {
 	app = getApp()
