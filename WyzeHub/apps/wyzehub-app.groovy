@@ -620,11 +620,11 @@ private def sendSmsCode(String mfaPhoneType, String smsSessionId, String userId)
 
 	try {
 		httpPost(params) { response ->
-			logDebug("Login Request was OK: ${response.status}")
+			logDebug("Send SMS was OK: ${response.status}")
 			state.sms_session_id = "${response.data?.session_id}"
 		}
 	} catch (Exception e) {
-		logError("Login Failed with Exception: ${e}")
+		logError("Send SMS Failed with Exception: ${e}")
 		clearState()
 		state.statusText = "Send SMS Exception: '${e}'"
 		return false
