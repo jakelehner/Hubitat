@@ -43,7 +43,7 @@ Contributions are welcome if you'd like to see additional devices supported or e
 
 1. Fork this repository.
 2. Add your driver or functionlaity.
-   1. Name the device somehting accurate so to be accurate and recognizable (i.e. 'Camera v2' vs 'Camera v3')
+   1. Name the device something so to be accurate and recognizable (i.e. 'Camera v2' vs 'Camera v3')
    2. Take care to follow formatting, code styling, and general "code feel" as best as poossible.
    3. Keep the same license (if submitting back to this repo).
 3. Test the hell out of your code.
