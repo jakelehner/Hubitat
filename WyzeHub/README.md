@@ -2,6 +2,7 @@
 
 This is an _unofficial_ Hubitat implementation for Wyze devices. The app offers basic control over supported devices and device groups.
 
+Join the conversation in the [Hubitat Community discussion thread](https://community.hubitat.com/t/release-wyzehub-wyze-device-integration/79504).
 ## Supported Devices
 Support is currently limiited to devices I have on hand. Devices will be added as I get them or as the community contributes.
 
@@ -43,8 +44,17 @@ Contributions are welcome if you'd like to see additional devices supported or e
 
 1. Fork this repository.
 2. Add your driver or functionlaity.
-   1. Name the device something so to be accurate and recognizable (i.e. 'Camera v2' vs 'Camera v3')
-   2. Take care to follow formatting, code styling, and general "code feel" as best as poossible.
-   3. Keep the same license (if submitting back to this repo).
+   1. It will likely be best to do your work against the `vNext` branch.
+   2. Name the device something so to be accurate and recognizable (i.e. 'Camera v2' vs 'Camera v3')
+   3. Take care to follow formatting, code styling, and general "code feel" as best as poossible.
+   4. Keep the same license (if submitting back to this repo).
 3. Test the hell out of your code.
-4. Submit a Pull Request back to the `master` branch.
+4. Submit a Pull Request back to the `vNext` branch.
+
+## Credits and High Fives
+
+The following GitHub repos were of great help in the development of this package:
+
+* [shauntarves/wyze-sdk](https://github.com/shauntarves/wyze-sdk): Unofficial Wyze SDK in Python. Used quite a bit as a reference for this libray.
+* [ndejong5/homebridge-wyze-connected-home-op](https://github.com/ndejong5/homebridge-wyze-connected-home-op): Wyze Homebridge driver. I initially started updating this driver to add support for the Color Bulb. Quickly got frustrated with Homebridge and decided to abandon that effort for this one.
+* [HubitatCommunity/CoCoHue](https://github.com/HubitatCommunity/CoCoHue): Used extensively as a reference for Hubitat app and driver development.
