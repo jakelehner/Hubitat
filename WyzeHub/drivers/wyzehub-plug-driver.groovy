@@ -59,6 +59,7 @@ metadata {
 		importUrl: "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-driver.groovy"
 	) {
 		capability "Outlet"
+		capability "Switch"
 		capability "Refresh"
 
 		attribute "vacationMode", "bool"
