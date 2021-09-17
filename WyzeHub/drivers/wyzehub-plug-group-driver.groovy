@@ -49,6 +49,7 @@ metadata {
 		importUrl: "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-group-driver.groovy"
 	) {
 		capability "Outlet"
+		capability "Switch"
 		capability "Refresh"
 
 	}
