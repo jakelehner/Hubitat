@@ -55,6 +55,7 @@ public static final String apiAppVersion() { return "2.19.14" }
     8: [label: 'Color Bulb Group', driver: 'WyzeHub Color Bulb Group'],
 ]
 @Field static final Map driverMap = [
+   'Camera': [label: 'Camera', driver: 'WyzeHub Camera'],
    'MeshLight': [label: 'Color Bulb', driver: 'WyzeHub Color Bulb'],
    'Plug': [label: 'Plug', driver: 'WyzeHub Plug'],
    'default': [label: 'Unsupported Type', driver: null]
