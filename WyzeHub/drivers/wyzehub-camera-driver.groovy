@@ -123,7 +123,7 @@ def refresh() {
 		createDeviceEventsFromPropertyList(propertyList)
 	}
 
-	//runIn(pollInterval, 'refresh')
+	runIn(pollInterval, 'refresh')
 }
 
 def on() {
