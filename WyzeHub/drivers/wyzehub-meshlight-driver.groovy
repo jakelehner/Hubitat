@@ -33,9 +33,9 @@
 import groovy.transform.Field
 import hubitat.helper.ColorUtils
 
-public static String version() { return "v1.0.6"  }
+public static String version() { return "v1.0.7"  }
 
-public String deviceModel() { return 'WLPA19C' }
+public String deviceModel() { return device.getDataValue('product_model') ?: 'WLPA19C' }
 
 @Field static final String wyze_property_power = 'P3'
 @Field static final String wyze_property_device_online = 'P5'

@@ -32,9 +32,9 @@
 
 import groovy.transform.Field
 
-public static String version() {  return "v1.0.6"  }
+public static String version() {  return "v1.0.7"  }
 
-public String deviceModel() { return 'WLPP1CFH' }
+public String deviceModel() { return device.getDataValue('product_model') ?: 'WLPP1CFH' }
 
 @Field static final String wyze_action_power_on = 'power_on'
 @Field static final String wyze_action_power_off = 'power_off'

@@ -43,7 +43,7 @@ import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static final String version() { return "v1.0.6" }
+public static final String version() { return "v1.0.7" }
 
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }
@@ -722,7 +722,16 @@ private def addDeviceGroups(List deviceGroupIds) {
                     ]
 
 					state.deviceParentMap[mac] = groupNetworkId
-                    groupDevice.addChildDevice(childNamespace, driver, deviceFromCache.mac, deviceProps)
+                    device = groupDevice.addChildDevice(childNamespace, driver, deviceFromCache.mac, deviceProps)
+
+					deviceFromCache.each { key, value ->
+						if (!(key && value)) {
+							logInfo('key or value not set')
+							return
+						}
+						logInfo("setting ${key} to ${value}")
+						device.updateDataValue(key, value.toString())
+					}
                 }
             }
 		}
@@ -747,7 +756,14 @@ private def addDevices(List deviceMacs) {
 				label: (deviceFromCache.nickname),
 				deviceModel: (deviceFromCache.product_model)
 			]
-			addChildDevice(childNamespace, driver, deviceFromCache.mac, deviceProps)
+			device = addChildDevice(childNamespace, driver, deviceFromCache.mac, deviceProps)
+
+			deviceFromCache.each { key, value ->
+				if (!(key && value)) {
+					return
+				}
+				device.updateDataValue(key, value.toString())
+			}
 		}
 	}
 }
@@ -930,7 +946,11 @@ private validateApiResponse(response) {
 		throw new Exception(response.message)
 	}
 	
-	responseData = parseJson(response.data)
+	if (response.data instanceof String) {
+		responseData = parseJson(response.data)
+	} else {
+		responseData = response.data
+	}
 
 	if (responseData.code == "2001") {
 		logError("Access Token Invalid. Attempting to refresh token.")
