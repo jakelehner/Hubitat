@@ -33,7 +33,7 @@
 import groovy.transform.Field
 import hubitat.helper.ColorUtils
 
-public static String version() { return "v1.0.5"  }
+public static String version() { return "v1.0.6"  }
 
 public String deviceModel() { return 'WLPA19C' }
 
@@ -113,7 +113,7 @@ void initialize() {
     logDebug("initialize()")
 
     unschedule('refresh')
-    schedule('0/10 * * * * ? *', 'refresh')
+    //schedule('0/10 * * * * ? *', 'refresh')
 }
 
 void parse(String description) {
@@ -123,9 +123,7 @@ void parse(String description) {
 def refresh() {
 	app = getApp()
 	logInfo("Refresh Device")
-	app.apiGetDevicePropertyList(device.deviceNetworkId, deviceModel()) { propertyList ->
-		createDeviceEventsFromPropertyList(propertyList)
-	}
+	app.apiGetDevicePropertyList(device.deviceNetworkId, deviceModel())
 }
 
 def on() {
