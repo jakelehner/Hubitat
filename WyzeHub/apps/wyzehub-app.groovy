@@ -33,8 +33,8 @@
  * Last Modified: 2021-09-12
  * 
  * Release Notes:
- *   v1.0.0  - Initial Release. 
- *           - Support for Color Bulbs, Plugs, and associated groups.
+ *   v1.0  - Initial Release. 
+ *         - Support for Color Bulbs, Plugs, and associated groups.
  *  
  */
 
@@ -43,7 +43,7 @@ import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static final String version() { return "v1.0.5" }
+public static final String version() { return "v1.0.7" }
 
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }
@@ -723,7 +723,16 @@ private def addDeviceGroups(List deviceGroupIds) {
                     ]
 
 					state.deviceParentMap[mac] = groupNetworkId
-                    groupDevice.addChildDevice(childNamespace, driver, deviceFromCache.mac, deviceProps)
+                    device = groupDevice.addChildDevice(childNamespace, driver, deviceFromCache.mac, deviceProps)
+
+					deviceFromCache.each { key, value ->
+						if (!(key && value)) {
+							logInfo('key or value not set')
+							return
+						}
+						logInfo("setting ${key} to ${value}")
+						device.updateDataValue(key, value.toString())
+					}
                 }
             }
 		}
@@ -748,7 +757,14 @@ private def addDevices(List deviceMacs) {
 				label: (deviceFromCache.nickname),
 				deviceModel: (deviceFromCache.product_model)
 			]
-			addChildDevice(childNamespace, driver, deviceFromCache.mac, deviceProps)
+			device = addChildDevice(childNamespace, driver, deviceFromCache.mac, deviceProps)
+
+			deviceFromCache.each { key, value ->
+				if (!(key && value)) {
+					return
+				}
+				device.updateDataValue(key, value.toString())
+			}
 		}
 	}
 }
@@ -879,7 +895,7 @@ def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId
 }
 
 def asyncapiPost(String path, Map body = [:], String callbackMethod = null, Map callbackData = [:]) {
-	logDebug('apiPost()')
+	logDebug('asyncapiPost()')
 
 	bodyJson = (new JsonBuilder(body)).toString()
 
@@ -913,33 +929,52 @@ def apiPost(String path, Map body = [], Closure closure = {}) {
 
 	try {
 		httpPost(params) { response -> 
-			if (response.data.code == "2001") {
-				// TODO - reauthenticate
-				logError("Access Token Invalid. Attempting to refresh token.")
-                logDebug(response.data)
-				refreshAccessTeoken() { refreshTokenResponse ->
-					apiPost(path, body, closure)
-				}
-			}
-
-			if (response.data.code == "2002") {
-				// Refresh Token Error
-				logError("Refresh Token Invalid.")
-				clearState()
-                throw new Exception("Refresh Token Invalid")
-			}
-
-			if (response.data.code != "1") {
-				logError("apiPost error!")
-                logDebug(response.data)
-				throw new Exception("Invalid Response Data Code: ${response.data.code}")
-			}
-
+			validateApiResponse(response)
 			closure(response.data) 
 		}
 	} catch (Exception e) {
 		logError("API Call to ${params.uri}${params.path} failed with Exception: ${e}")
 	}
+}
+
+private validateApiResponse(response) {
+	logDebug("validateApiResponse()")
+
+	if (response.hasProperty('message')) {
+		// i.e. 'Rate limit is exceeded.'
+		// TODO do something
+		logError(response.message)
+		throw new Exception(response.message)
+	}
+	
+	if (response.data instanceof String) {
+		responseData = parseJson(response.data)
+	} else {
+		responseData = response.data
+	}
+
+	if (responseData.code == "2001") {
+		logError("Access Token Invalid. Attempting to refresh token.")
+		logDebug(response.data)
+		refreshAccessTeoken() { refreshTokenResponse ->
+			apiPost(path, body, closure)
+		}
+	}
+
+	if (responseData.code == "2002") {
+		// Refresh Token Error
+		logError("Refresh Token Invalid.")
+		clearState()
+		throw new Exception("Refresh Token Invalid")
+	}
+
+	if (responseData.code != "1") {
+		logError("API Response error!")
+		logDebug(response.data)
+		throw new Exception("Invalid Response Data Code: ${response.data.code}")
+	}
+
+	return true;
 }
 
 private refreshAccessTeoken(Closure closure = {}) {
@@ -957,6 +992,13 @@ private refreshAccessTeoken(Closure closure = {}) {
 
 private void deviceEventsCallback(response, data) {
 	logDebug("deviceEventsCallback() for device ${data.deviceNetworkId}")
+
+	validateApiResponse(response)
+
+	if (!response.data) {
+		logError("No response data sent to deviceEventsCallback()")
+		return;
+	}
 
 	responseData = parseJson(response.data)
 

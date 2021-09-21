@@ -33,7 +33,7 @@
 import groovy.transform.Field
 import hubitat.helper.ColorUtils
 
-public static String version() { return "v1.0.5"  }
+public static String version() { return "v1.0.7"  }
 
 public String deviceModel() { return '' }
 
@@ -49,6 +49,7 @@ metadata {
 		importUrl: "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-group-driver.groovy"
 	) {
 		capability "Outlet"
+		capability "Switch"
 		capability "Refresh"
 
 	}
