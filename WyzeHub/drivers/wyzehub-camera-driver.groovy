@@ -32,9 +32,9 @@
 
 import groovy.transform.Field
 
-public static String version() {  return "v1.0.5"  }
+public static String version() {  return "v1.0.8"  }
 
-public String deviceModel() { return 'WYZEC1-JZ' }
+public String deviceModel() { return device.getDataValue('product_model') ?: 'WYZEC1-JZ' }
 
 @Field static final String wyze_action_power_on = 'power_on'
 @Field static final String wyze_action_power_off = 'power_off'
@@ -112,33 +112,29 @@ metadata {
 }
 
 void installed() {
-    log.debug "installed()"
+    logDebug "installed()"
     initialize()
 }
 
 void updated() {
-    log.debug "updated()"
+    logDebug "updated()"
     initialize()
 }
 
 void initialize() {
-    log.debug "initialize()"
+    logDebug "initialize()"
     unschedule('refresh')
     refresh()
 }
 
 void parse(String description) {
-    log.warn("Running unimplemented parse for: '${description}'")
+    logWarn("Running unimplemented parse for: '${description}'")
 }
 
 def refresh() {
     app = getApp()
 	logInfo("Refresh Device")
-	app.apiGetDevicePropertyList(device.deviceNetworkId, deviceModel()) { propertyList ->
-		createDeviceEventsFromPropertyList(propertyList)
-	}
-
-	runIn(pollInterval, 'refresh')
+    app.apiGetDevicePropertyList(device.deviceNetworkId, deviceModel())
 }
 
 def on() {

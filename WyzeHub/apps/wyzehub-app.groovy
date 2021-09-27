@@ -43,7 +43,7 @@ import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static final String version() { return "v1.0.7" }
+public static final String version() { return "v1.0.8" }
 
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }
@@ -881,7 +881,7 @@ def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId
 	]
 
 	callbackData = [
-		'deviceNetworkId': deviceNetworkId,
+		'deviceNetworkId': deviceMac,
 		'propertyList': [
 			[
 				'pid': propertyId,
@@ -890,9 +890,7 @@ def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId
 		]
 	]
 	
-	apiPost('/app/v2/device/set_property', requestBody) { response ->
-		closure(response)
-	}
+	asyncapiPost('/app/v2/device/set_property', requestBody, 'deviceEventsCallback', callbackData)
 }
 
 def asyncapiPost(String path, Map body = [:], String callbackMethod = null, Map callbackData = [:]) {
@@ -940,7 +938,7 @@ def apiPost(String path, Map body = [], Closure closure = {}) {
 
 private validateApiResponse(response) {
 	logDebug("validateApiResponse()")
-
+	
 	if (response.hasProperty('message')) {
 		// i.e. 'Rate limit is exceeded.'
 		// TODO do something
@@ -1003,16 +1001,17 @@ private void deviceEventsCallback(response, data) {
 
 	responseData = parseJson(response.data)
 
-	propertyList = data.propertyList ?: responseData.data.property_list ?: null
+	propertyList = data.propertyList ?: responseData.data.property_list ?: []
 	
 	if (!(data.deviceNetworkId && propertyList)) {
 		logDebug('Missing deviceNetworkId or propertyList')
 		return
 	}
 
+	logDebug(propertyList)
+
 	parentNetworkId = state.deviceParentMap[data.deviceNetworkId]
 	if (parentNetworkId) {
-		logDebug("Device ${data.deviceNetworkId} not found")
 		device = getChildDevice(parentNetworkId).getChildDevice(data.deviceNetworkId)
 	} else {
 		device = getChildDevice(data.deviceNetworkId)
