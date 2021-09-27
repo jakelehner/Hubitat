@@ -51,12 +51,14 @@ public static final String apiAppVersion() { return "2.19.14" }
 @Field static final String childNamespace = "jakelehner" 
 
 @Field static final Map groupDriverMap = [
+    1: [label: 'Camera Group', driver: 'WyzeHub Camera Group'],
     5: [label: 'Plug Group', driver: 'WyzeHub Plug Group'],
     8: [label: 'Color Bulb Group', driver: 'WyzeHub Color Bulb Group'],
 ]
 @Field static final Map driverMap = [
    'MeshLight': [label: 'Color Bulb', driver: 'WyzeHub Color Bulb'],
    'Plug': [label: 'Plug', driver: 'WyzeHub Plug'],
+   'Camera': [label: 'Camera', driver: 'WyzeHub Camera'],
    'default': [label: 'Unsupported Type', driver: null]
 ]
 
