@@ -32,7 +32,7 @@
 
 import groovy.transform.Field
 
-public static String version() {  return "v1.0.8"  }
+public static String version() {  return "v1.1.0"  }
 
 public String deviceModel() { return device.getDataValue('product_model') ?: 'WYZEC1-JZ' }
 
@@ -171,7 +171,7 @@ def setMotionNotification(motion_notify) {
 	id = wyze_property_motion_record
     
     sendProperty(id, value)
-    runIn(5,refresh)
+    runIn(pollInterval,refresh)
 }
 
 def setSoundNotification(sound_notify) {
@@ -182,7 +182,7 @@ def setSoundNotification(sound_notify) {
 	id = wyze_property_sound_record
 
     sendProperty(id, value)
-    runIn(5,refresh)
+    runIn(pollInterval,refresh)
 }
 
 private sendProperty(pid, pvalue) {

@@ -30,11 +30,12 @@
  *
  * ===================================================================================
  * 
- * Last Modified: 2021-09-12
- * 
  * Release Notes:
- *   v1.0  - Initial Release. 
- *         - Support for Color Bulbs, Plugs, and associated groups.
+ *   v1.1 - Add Camera Driver (thanks @fieldsjm!)
+ *        - Add Outdoor Plug
+ *        - Hubitat Package Manager
+ *   v1.0 - Initial Release. 
+ *        - Support for Color Bulbs, Plugs, and associated groups.
  *  
  */
 
@@ -43,7 +44,7 @@ import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static final String version() { return "v1.0.8" }
+public static final String version() { return "v1.1.0" }
 
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }

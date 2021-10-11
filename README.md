@@ -4,4 +4,4 @@ This repo holds Apps and Device for the Hubitat platform. It started due to a se
 
 ## Current Packages
 
-* **WyzeHub** - An _unofficial_ Hubitat implementation for Wyze devices.
+* [**WyzeHub**](https://github.com/jakelehner/Hubitat/tree/master/WyzeHub) - An _unofficial_ Hubitat implementation for Wyze devices.

@@ -32,7 +32,7 @@
 
 import groovy.transform.Field
 
-public static String version() {  return "v1.0.8"  }
+public static String version() {  return "v1.1.0"  }
 
 public String deviceModel() { return device.getDataValue('product_model') ?: 'WLPP1CFH' }
 
@@ -103,9 +103,9 @@ def refresh() {
 	app.apiGetDevicePropertyList(device.deviceNetworkId, deviceModel())
 
 	// TODO Make Configurable
-	keepFresh = true
-	keepFreshSeconds = 10
-	runIn(keepFreshSeconds, 'refresh')
+	// keepFresh = true
+	// keepFreshSeconds = 10
+	// runIn(keepFreshSeconds, 'refresh')
 }
 
 def on() {
