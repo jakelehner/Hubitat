@@ -112,14 +112,14 @@ def on() {
 	app = getApp()
 	logInfo("'On' Pressed")
 
-	app.apiRunAction(device.deviceNetworkId, deviceModel(), wyze_action_power_on)
+	app.apiSetDeviceProperty(device.deviceNetworkId, deviceModel(), wyze_property_power, wyze_property_power_value_on)
 }
 
 def off() {
 	app = getApp()
 	logInfo("'Off' Pressed")
 
-	app.apiRunAction(device.deviceNetworkId, deviceModel(), wyze_action_power_off)
+	app.apiSetDeviceProperty(device.deviceNetworkId, deviceModel(), wyze_property_power, wyze_property_power_value_off)
 }
 
 void createDeviceEventsFromPropertyList(List propertyList) {

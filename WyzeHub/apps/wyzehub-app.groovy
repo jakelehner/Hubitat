@@ -55,9 +55,13 @@ public static final String apiAppVersion() { return "2.19.14" }
     5: [label: 'Plug Group', driver: 'WyzeHub Plug Group'],
     8: [label: 'Color Bulb Group', driver: 'WyzeHub Color Bulb Group'],
 ]
+@Field static final List ignoreDeviceModels = [
+	'WLPPO'
+]
 @Field static final Map driverMap = [
    'MeshLight': [label: 'Color Bulb', driver: 'WyzeHub Color Bulb'],
    'Plug': [label: 'Plug', driver: 'WyzeHub Plug'],
+   'OutdoorPlug': [label: 'Outdoor Plug', driver: 'WyzeHub Plug'],
    'Camera': [label: 'Camera', driver: 'WyzeHub Camera'],
    'default': [label: 'Unsupported Type', driver: null]
 ]
@@ -477,6 +481,11 @@ def pageSelectDevices() {
 	
 	if (deviceCache.devices) {
 		deviceCache.devices.each { mac, device ->
+			if (ignoreDeviceModels.contains(device.product_model)) {
+				logDebug("${device.nickname} (${device.mac}) is ignored device model. Skipping...")
+				return
+			}
+
 			productType = driverMap[device.product_type]
 			
 			if (getChildDevice(device.mac)) {
@@ -868,7 +877,7 @@ def apiRunActionList(String deviceMac, String deviceModel, List actionList) {
 	asyncapiPost('/app/v2/auto/run_action_list', requestBody, 'deviceEventsCallback', callbackData)
 }
 
-def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId, value, Closure closure = {}) {
+def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId, value) {
 	logDebug("setDeviceProperty()")
 	logDebug(['mac': deviceMac, 'model': deviceModel, 'propertyId': propertyId, 'value': value])
 
@@ -1007,8 +1016,6 @@ private void deviceEventsCallback(response, data) {
 		logDebug('Missing deviceNetworkId or propertyList')
 		return
 	}
-
-	logDebug(propertyList)
 
 	parentNetworkId = state.deviceParentMap[data.deviceNetworkId]
 	if (parentNetworkId) {
