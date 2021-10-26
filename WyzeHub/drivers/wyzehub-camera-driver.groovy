@@ -36,7 +36,7 @@
 
 import groovy.transform.Field
 
-public static String version() {  return "v1.1"  }
+public static String version() {  return "v1.1.0"  }
 
 public String deviceModel() { return device.getDataValue('product_model') ?: 'WYZEC1-JZ' }
 
@@ -134,7 +134,7 @@ metadata {
 }
 
 void installed() {
-    log.debug "installed()"
+    logDebug "installed()"
     initialize()
 }
 
@@ -151,7 +151,7 @@ void initialize() {
 }
 
 void parse(String description) {
-    log.warn("Running unimplemented parse for: '${description}'")
+    logWarn("Running unimplemented parse for: '${description}'")
 }
 
 def refresh() {
@@ -210,7 +210,7 @@ def setMotionNotification(motion_notify) {
 	id = wyze_property_motion_notify
     
     sendProperty(id, value)
-    runIn(5,refresh)
+    runIn(pollInterval,refresh)
 }
 
 def setSoundNotification(sound_notify) {
@@ -221,7 +221,7 @@ def setSoundNotification(sound_notify) {
 	id = wyze_property_sound_notify
 
     sendProperty(id, value)
-    runIn(5,refresh)
+    runIn(pollInterval,refresh)
 }
 
 private sendProperty(pid, pvalue) {

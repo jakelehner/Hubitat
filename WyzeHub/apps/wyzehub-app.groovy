@@ -30,11 +30,12 @@
  *
  * ===================================================================================
  * 
- * Last Modified: 2021-09-12
- * 
  * Release Notes:
- *   v1.0  - Initial Release. 
- *         - Support for Color Bulbs, Plugs, and associated groups.
+ *   v1.1 - Add Camera Driver (thanks @fieldsjm!)
+ *        - Add Outdoor Plug
+ *        - Hubitat Package Manager
+ *   v1.0 - Initial Release. 
+ *        - Support for Color Bulbs, Plugs, and associated groups.
  *  
  */
 
@@ -43,7 +44,7 @@ import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static final String version() { return "v1.0.7" }
+public static final String version() { return "v1.1.0" }
 
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }
@@ -55,9 +56,13 @@ public static final String apiAppVersion() { return "2.19.14" }
     5: [label: 'Plug Group', driver: 'WyzeHub Plug Group'],
     8: [label: 'Color Bulb Group', driver: 'WyzeHub Color Bulb Group'],
 ]
+@Field static final List ignoreDeviceModels = [
+	'WLPPO'
+]
 @Field static final Map driverMap = [
    'MeshLight': [label: 'Color Bulb', driver: 'WyzeHub Color Bulb'],
    'Plug': [label: 'Plug', driver: 'WyzeHub Plug'],
+   'OutdoorPlug': [label: 'Outdoor Plug', driver: 'WyzeHub Plug'],
    'Camera': [label: 'Camera', driver: 'WyzeHub Camera'],
    'default': [label: 'Unsupported Type', driver: null]
 ]
@@ -477,6 +482,11 @@ def pageSelectDevices() {
 	
 	if (deviceCache.devices) {
 		deviceCache.devices.each { mac, device ->
+			if (ignoreDeviceModels.contains(device.product_model)) {
+				logDebug("${device.nickname} (${device.mac}) is ignored device model. Skipping...")
+				return
+			}
+
 			productType = driverMap[device.product_type]
 			
 			if (getChildDevice(device.mac)) {
@@ -868,7 +878,7 @@ def apiRunActionList(String deviceMac, String deviceModel, List actionList) {
 	asyncapiPost('/app/v2/auto/run_action_list', requestBody, 'deviceEventsCallback', callbackData)
 }
 
-def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId, value, Closure closure = {}) {
+def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId, value) {
 	logDebug("setDeviceProperty()")
 	logDebug(['mac': deviceMac, 'model': deviceModel, 'propertyId': propertyId, 'value': value])
 
@@ -881,7 +891,7 @@ def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId
 	]
 
 	callbackData = [
-		'deviceNetworkId': deviceNetworkId,
+		'deviceNetworkId': deviceMac,
 		'propertyList': [
 			[
 				'pid': propertyId,
@@ -890,9 +900,7 @@ def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId
 		]
 	]
 	
-	apiPost('/app/v2/device/set_property', requestBody) { response ->
-		closure(response)
-	}
+	asyncapiPost('/app/v2/device/set_property', requestBody, 'deviceEventsCallback', callbackData)
 }
 
 def asyncapiPost(String path, Map body = [:], String callbackMethod = null, Map callbackData = [:]) {
@@ -940,7 +948,7 @@ def apiPost(String path, Map body = [], Closure closure = {}) {
 
 private validateApiResponse(response) {
 	logDebug("validateApiResponse()")
-
+	
 	if (response.hasProperty('message')) {
 		// i.e. 'Rate limit is exceeded.'
 		// TODO do something
@@ -1003,7 +1011,7 @@ private void deviceEventsCallback(response, data) {
 
 	responseData = parseJson(response.data)
 
-	propertyList = data.propertyList ?: responseData.data.property_list ?: null
+	propertyList = data.propertyList ?: responseData.data.property_list ?: []
 	
 	if (!(data.deviceNetworkId && propertyList)) {
 		logDebug('Missing deviceNetworkId or propertyList')
@@ -1012,7 +1020,6 @@ private void deviceEventsCallback(response, data) {
 
 	parentNetworkId = state.deviceParentMap[data.deviceNetworkId]
 	if (parentNetworkId) {
-		logDebug("Device ${data.deviceNetworkId} not found")
 		device = getChildDevice(parentNetworkId).getChildDevice(data.deviceNetworkId)
 	} else {
 		device = getChildDevice(data.deviceNetworkId)

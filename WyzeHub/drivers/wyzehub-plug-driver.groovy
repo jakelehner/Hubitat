@@ -32,7 +32,7 @@
 
 import groovy.transform.Field
 
-public static String version() {  return "v1.0.7"  }
+public static String version() {  return "v1.1.0"  }
 
 public String deviceModel() { return device.getDataValue('product_model') ?: 'WLPP1CFH' }
 
@@ -103,23 +103,23 @@ def refresh() {
 	app.apiGetDevicePropertyList(device.deviceNetworkId, deviceModel())
 
 	// TODO Make Configurable
-	keepFresh = true
-	keepFreshSeconds = 10
-	runIn(keepFreshSeconds, 'refresh')
+	// keepFresh = true
+	// keepFreshSeconds = 10
+	// runIn(keepFreshSeconds, 'refresh')
 }
 
 def on() {
 	app = getApp()
 	logInfo("'On' Pressed")
 
-	app.apiRunAction(device.deviceNetworkId, deviceModel(), wyze_action_power_on)
+	app.apiSetDeviceProperty(device.deviceNetworkId, deviceModel(), wyze_property_power, wyze_property_power_value_on)
 }
 
 def off() {
 	app = getApp()
 	logInfo("'Off' Pressed")
 
-	app.apiRunAction(device.deviceNetworkId, deviceModel(), wyze_action_power_off)
+	app.apiSetDeviceProperty(device.deviceNetworkId, deviceModel(), wyze_property_power, wyze_property_power_value_off)
 }
 
 void createDeviceEventsFromPropertyList(List propertyList) {

@@ -1,0 +1,13 @@
+{
+	"author": "Jake Lehner",
+	"gitHubUrl": "https://github.com/jakelehner",
+	"packages": [
+		{
+			"name": "WyzeHub",
+			"tags": "Lights & Switches",
+			"location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/packageManifest.json",
+			"description": "Integration for Wyze devices using the Wyze API."
+		}
+	]
+	
+}

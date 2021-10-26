@@ -1,0 +1,71 @@
+{
+   "packageName": "WyzeHub",
+   "minimumHEVersion": "2.2.3",
+   "author": "Jake Lehner",
+   "dateReleased": "2021-09-12",
+   "communityLink": "https://community.hubitat.com/...",
+   "licenseFile": "",
+   "releaseNotes": "* Version 1.1: Add basic camera driver. Add outdoor plug support.\n\n* Version 1.0: Initial Release. Support for Color Bulbs, Plugs, and associated groups.",
+   "apps": [
+      {
+         "id": "0ff9d550-7c5e-4869-bbb4-eaeb2bcadadd",
+         "name": "WyzeHub",
+         "namespace": "jakelehner",
+         "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/apps/wyzehub-app.groovy",
+         "required": true,
+         "version": "1.1.0",
+         "primary": true,
+         "oauth": false
+      }
+   ],
+   "drivers": [
+      {
+         "id": "b171c31b-a2c8-4294-9407-46e2ae91e049",
+         "name": "WyzeHub Color Bulb",
+         "namespace": "jakelehner",
+         "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-meshlight-driver.groovy",
+         "version": "1.1.0",
+         "required": true
+      },
+      {
+         "id": "bfddaeda-4c79-4e17-b856-d89a9537d1b0",
+         "name": "WyzeHub Color Bulb Group",
+         "namespace": "jakelehner",
+         "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-meshlight-group-driver.groovy",
+         "version": "1.1.0",
+         "required": true
+      },
+      {
+         "id": "d7bdbc75-2e00-42fc-b6ad-59d371fc8f97",
+         "name": "WyzeHub Plug",
+         "namespace": "jakelehner",
+         "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-driver.groovy",
+         "version": "1.1.0",
+         "required": true
+      },
+      {
+         "id": "08f5243d-8b94-4ca6-affa-637325388a4e",
+         "name": "WyzeHub Plug Group",
+         "namespace": "jakelehner",
+         "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-group-driver.groovy",
+         "version": "1.1.0",
+         "required": true
+      },
+      {
+         "id": "d7bdbc75-2e00-42fc-b6ad-59d371fc8f97",
+         "name": "WyzeHub Camera",
+         "namespace": "jakelehner",
+         "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-camera-driver.groovy",
+         "version": "1.1.0",
+         "required": true
+      },
+      {
+         "id": "08f5243d-8b94-4ca6-affa-637325388a4e",
+         "name": "WyzeHub Camera Group",
+         "namespace": "jakelehner",
+         "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-camera-group-driver.groovy",
+         "version": "1.1.0",
+         "required": true
+      }
+   ]
+}
