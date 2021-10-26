@@ -1,5 +1,5 @@
 /*
- * Import URL: 
+ * Import URL: https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-camera-group-driver.groovy
  *
  * DON'T BE A DICK PUBLIC LICENSE
  *
@@ -32,7 +32,7 @@
 
 import groovy.transform.Field
 
-public static String version() {  return "v1.0.5"  }
+public static String version() {  return "v1.1.0"  }
 
 public String deviceModel() { return 'WYZEC1-JZ' }
 
@@ -43,7 +43,7 @@ metadata {
 		name: "WyzeHub Camera Group", 
 		namespace: "jakelehner", 
 		author: "Jake Lehner", 
-		importUrl: ""
+		importUrl: "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-camera-group-driver.groovy"
 	) {
 		capability "Outlet"
 		capability "Refresh"
