@@ -36,9 +36,9 @@
 
 import groovy.transform.Field
 
-public static String version() {  return "v1.0.5"  }
+public static String version() {  return "v1.1"  }
 
-public String deviceModel() { return 'WYZEC1-JZ' }
+public String deviceModel() { return device.getDataValue('product_model') ?: 'WYZEC1-JZ' }
 
 @Field static final String wyze_action_power_on = 'power_on'
 @Field static final String wyze_action_power_off = 'power_off'
@@ -76,9 +76,9 @@ metadata {
 		capability "Refresh"
 
 		attribute "motion_recording", "bool"
-        attribute "notifications_enabled", "bool"
-        attribute "motion_notification", "bool"
-        attribute "sound_notification", "bool"
+        	attribute "notifications_enabled", "bool"
+        	attribute "motion_notification", "bool"
+        	attribute "sound_notification", "bool"
 		attribute "online", "bool"
         
         command(
@@ -145,7 +145,7 @@ void updated() {
 }
 
 void initialize() {
-    log.debug "initialize()"
+    if (debugOutput) log.debug "initialize()"
     unschedule('refresh')
     refresh()
 }
