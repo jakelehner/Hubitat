@@ -1,5 +1,5 @@
 /*
- * Import URL: 
+ * Import URL: https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-camera-driver.groovy
  *
  * DON'T BE A DICK PUBLIC LICENSE
  *
@@ -28,6 +28,10 @@
  * 3. Code is provided with no warranty. Using somebody else's code and bitching when it goes wrong makes
  *    you a DONKEY dick. Fix the problem yourself. A non-dick would submit the fix back.
  *
+ * Release Notes:
+ *   v1.1 - Event Recording Enable/Disable
+ *   v1.0 - Initial Release. 
+ *        - Support for Power On/Off, Notification Preferences
  */
 
 import groovy.transform.Field
@@ -38,39 +42,56 @@ public String deviceModel() { return device.getDataValue('product_model') ?: 'WY
 
 @Field static final String wyze_action_power_on = 'power_on'
 @Field static final String wyze_action_power_off = 'power_off'
+@Field static final String wyze_action_motion_on = 'motion_alarm_on'
+@Field static final String wyze_action_motion_off = 'motion_alarm_off'
 
 @Field static final String wyze_property_power = 'P3'
 @Field static final String wyze_property_device_online = 'P5'
 @Field static final String wyze_property_notifications = 'P1'
-@Field static final String wyze_property_motion_record = 'P1047'
-@Field static final String wyze_property_sound_record = 'P1048'
+@Field static final String wyze_property_motion_record = 'P1001'
+@Field static final String wyze_property_motion_notify = 'P1047'
+@Field static final String wyze_property_sound_notify = 'P1048'
 
 @Field static final String wyze_property_power_value_on = '1'
 @Field static final String wyze_property_power_value_off = '0'
 @Field static final String wyze_property_device_online_value_true = '1'
 @Field static final String wyze_property_device_online_value_false = '0'
-@Field static final String wyze_property_device_notifications_value_true = '1'
-@Field static final String wyze_property_device_notifications_value_false = '0'
 @Field static final String wyze_property_device_motion_record_value_true = '1'
 @Field static final String wyze_property_device_motion_record_value_false = '0'
-@Field static final String wyze_property_device_sound_record_value_true = '1'
-@Field static final String wyze_property_device_sound_record_value_false = '0'
+@Field static final String wyze_property_device_notifications_value_true = '1'
+@Field static final String wyze_property_device_notifications_value_false = '0'
+@Field static final String wyze_property_device_motion_notify_value_true = '1'
+@Field static final String wyze_property_device_motion_notify_value_false = '0'
+@Field static final String wyze_property_device_sound_notify_value_true = '1'
+@Field static final String wyze_property_device_sound_notify_value_false = '0'
 
 metadata {
 	definition(
 		name: "WyzeHub Camera", 
 		namespace: "jakelehner", 
 		author: "Jake Lehner", 
-		importUrl: ""
+		importUrl: "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-camera-driver.groovy"
 	) {
 		capability "Outlet"
 		capability "Refresh"
 
-		attribute "notifications_enabled", "bool"
-        attribute "motion_notification", "bool"
-        attribute "sound_notification", "bool"
+		attribute "motion_recording", "bool"
+        	attribute "notifications_enabled", "bool"
+        	attribute "motion_notification", "bool"
+        	attribute "sound_notification", "bool"
 		attribute "online", "bool"
         
+        command(
+             "setMotionRecording", 
+             [
+                [
+                     "name":"motion_record*",
+                     "description":"Set value to true/false to enable/disable event recording based on motion",
+                     "type":"ENUM",
+                     "constraints":["true","false"]
+                ]
+             ]
+        )
         command(
              "setAllNotifications", 
              [
@@ -108,6 +129,7 @@ metadata {
 
 	preferences {
         input "pollInterval", "number", title: "Polling Interval", description: "Change polling frequency (in seconds)", defaultValue:240, range: "10..86400", required: true, displayDuringSetup: true
+        input "debugOutput", "bool", title: "Enable debug logging", defaultValue: true
 	}
 }
 
@@ -117,12 +139,13 @@ void installed() {
 }
 
 void updated() {
-    logDebug "updated()"
+    if (debugOutput) runIn(1800,logsOff) //disable debug logs after 30 min
+    log.debug "updated()"
     initialize()
 }
 
 void initialize() {
-    logDebug "initialize()"
+    if (debugOutput) log.debug "initialize()"
     unschedule('refresh')
     refresh()
 }
@@ -134,7 +157,11 @@ void parse(String description) {
 def refresh() {
     app = getApp()
 	logInfo("Refresh Device")
-    app.apiGetDevicePropertyList(device.deviceNetworkId, deviceModel())
+	app.apiGetDevicePropertyList(device.deviceNetworkId, deviceModel()) { propertyList ->
+		createDeviceEventsFromPropertyList(propertyList)
+	}
+
+	runIn(pollInterval, refresh)
 }
 
 def on() {
@@ -151,9 +178,21 @@ def off() {
 	app.apiRunAction(device.deviceNetworkId, deviceModel(), wyze_action_power_off)
 }
 
+def setMotionRecording(motion_record) {
+    app = getApp()
+    logInfo("setMotionRecording() Pressed")
+    if (debugOutput) logDebug('Setting Motion Recording to ' + motion_record)
+    
+    wyze_action = motion_record == "true" ? wyze_action_motion_on : wyze_action_motion_off
+
+	app.apiRunAction(device.deviceNetworkId, deviceModel(), wyze_action)
+        
+    setMotionNotification(motion_record)
+}
+
 def setAllNotifications(all_notify) {
     logInfo("setAllNotifications() Pressed")
-    logDebug('Setting All Notifications to ' + all_notify)
+    if (debugOutput) logDebug('Setting All Notifications to ' + all_notify)
     
     value = all_notify == "true" ? wyze_property_device_notifications_value_true : wyze_property_device_notifications_value_false
 	id = wyze_property_notifications
@@ -165,10 +204,10 @@ def setAllNotifications(all_notify) {
 
 def setMotionNotification(motion_notify) {
     logInfo("setMotionNotification() Pressed")
-    logDebug('Setting Motion Notifications to ' + motion_notify)
+    if (debugOutput) logDebug('Setting Motion Notifications to ' + motion_notify)
     
-    value = motion_notify == "true" ? wyze_property_device_motion_record_value_true : wyze_property_device_motion_record_value_false
-	id = wyze_property_motion_record
+    value = motion_notify == "true" ? wyze_property_device_motion_notify_value_true : wyze_property_device_motion_notify_value_false
+	id = wyze_property_motion_notify
     
     sendProperty(id, value)
     runIn(pollInterval,refresh)
@@ -176,10 +215,10 @@ def setMotionNotification(motion_notify) {
 
 def setSoundNotification(sound_notify) {
 	logInfo("setSoundNotification() Pressed")
-    logDebug('Setting Sound Notifications to ' + sound_notify)
+    if (debugOutput) logDebug('Setting Sound Notifications to ' + sound_notify)
     
-    value = sound_notify == "true" ? wyze_property_device_sound_record_value_true : wyze_property_device_sound_record_value_false
-	id = wyze_property_sound_record
+    value = sound_notify == "true" ? wyze_property_device_sound_notify_value_true : wyze_property_device_sound_notify_value_false
+	id = wyze_property_sound_notify
 
     sendProperty(id, value)
     runIn(pollInterval,refresh)
@@ -192,7 +231,7 @@ private sendProperty(pid, pvalue) {
     
 void createDeviceEventsFromPropertyList(List propertyList) {
 	app = getApp()
-    //logDebug(propertyList)
+    if (debugOutput) logDebug(propertyList)
     String eventName, eventUnit
     def eventValue // could be String or number
 
@@ -216,7 +255,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 				}
 
 				if (device.currentValue(eventName) != eventValue) {
-					logDebug("Updating Property 'switch' to ${eventValue}")
+					if (debugOutput) logDebug("Updating Property 'switch' to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -228,7 +267,7 @@ void createDeviceEventsFromPropertyList(List propertyList) {
                 eventValue = propertyValue == wyze_property_device_online_value_true ? "true" : "false"
                 
 				if (device.currentValue(eventName) != eventValue) {
-					logDebug("Updating Property 'online' to ${eventValue}")
+					if (debugOutput) logDebug("Updating Property 'online' to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -240,31 +279,43 @@ void createDeviceEventsFromPropertyList(List propertyList) {
                 eventValue = propertyValue == wyze_property_device_notifications_value_true ? "true" : "false"
 
 				if (device.currentValue(eventName) != eventValue) {
-                    logDebug("Updating Property ${eventName} to ${eventValue}")
+                    if (debugOutput) logDebug("Updating Property ${eventName} to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
-
+            
             // Event Recording based on motion
             case wyze_property_motion_record:
-                eventName = "motion_notification"
+                eventName = "motion_recording"
                 eventUnit = null
                 eventValue = propertyValue == wyze_property_device_motion_record_value_true ? "true" : "false"
 
 				if (device.currentValue(eventName) != eventValue) {
-                    logDebug("Updating Property ${eventName} to ${eventValue}")
+                    if (debugOutput) logDebug("Updating Property ${eventName} to ${eventValue}")
+					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+				}
+            break
+            
+            // Notificaitons based on motion
+            case wyze_property_motion_notify:
+                eventName = "motion_notification"
+                eventUnit = null
+                eventValue = propertyValue == wyze_property_device_motion_notify_value_true ? "true" : "false"
+
+				if (device.currentValue(eventName) != eventValue) {
+                    if (debugOutput) logDebug("Updating Property ${eventName} to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
 
-            // Event Recording based on sound
-            case wyze_property_sound_record:
+            // Notificastions based on sound
+            case wyze_property_sound_notify:
                 eventName = "sound_notification"
                 eventUnit = null
-                eventValue = propertyValue == wyze_property_device_sound_record_value_true ? "true" : "false"
+                eventValue = propertyValue == wyze_property_device_sound_notify_value_true ? "true" : "false"
 
 				if (device.currentValue(eventName) != eventValue) {
-					logDebug("Updating Property ${eventName} to ${eventValue}")
+					if (debugOutput) logDebug("Updating Property ${eventName} to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
@@ -299,4 +350,9 @@ private void logWarn(message) {
 private void logError(message) {
 	app = getApp()
 	app.logError("[${device.label}] " + message)
+}
+
+def logsOff(){
+    log.warn "debug logging disabled..."
+    device.updateSetting("debugOutput",[value:"false",type:"bool"])
 }
