@@ -5,7 +5,7 @@
    "dateReleased": "2021-09-12",
    "communityLink": "https://community.hubitat.com/...",
    "licenseFile": "",
-   "releaseNotes": "* Version 1.1: Add basic camera driver. Add outdoor plug support.\n\n* Version 1.0: Initial Release. Support for Color Bulbs, Plugs, and associated groups.",
+   "releaseNotes": "*Version 1.2: Add Camera Event Recording Enable/Disable\n\n* Version 1.1: Add basic camera driver. Add outdoor plug support.\n\n* Version 1.0: Initial Release. Support for Color Bulbs, Plugs, and associated groups.",
    "apps": [
       {
          "id": "0ff9d550-7c5e-4869-bbb4-eaeb2bcadadd",
