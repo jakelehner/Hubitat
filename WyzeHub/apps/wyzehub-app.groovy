@@ -491,8 +491,8 @@ def pageSelectDevices() {
 
 			productType = driverMap[device.product_type]
 			
-			if (child = getChildDevice(device.mac)) {
-				logDebug("${device.nickname} (${device.mac} - ${child.name}) already exists. Skipping...")
+			if (getChildDevice(device.mac)) {
+				logDebug("${device.nickname} (${device.mac}) already exists. Skipping...")
 				return
 			}
 
