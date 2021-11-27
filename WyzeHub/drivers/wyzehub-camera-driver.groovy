@@ -44,6 +44,8 @@ public String deviceModel() { return device.getDataValue('product_model') ?: 'WY
 @Field static final String wyze_action_power_off = 'power_off'
 @Field static final String wyze_action_motion_on = 'motion_alarm_on'
 @Field static final String wyze_action_motion_off = 'motion_alarm_off'
+@Field static final String wyze_action_floodlight_on = 'floodlight_on'
+@Field static final String wyze_action_floodlight_off = 'floodlight_off'
 
 @Field static final String wyze_property_power = 'P3'
 @Field static final String wyze_property_device_online = 'P5'
@@ -51,6 +53,7 @@ public String deviceModel() { return device.getDataValue('product_model') ?: 'WY
 @Field static final String wyze_property_motion_record = 'P1001'
 @Field static final String wyze_property_motion_notify = 'P1047'
 @Field static final String wyze_property_sound_notify = 'P1048'
+@Field static final String wyze_property_floodlight = 'P1056'
 
 @Field static final String wyze_property_power_value_on = '1'
 @Field static final String wyze_property_power_value_off = '0'
@@ -64,6 +67,8 @@ public String deviceModel() { return device.getDataValue('product_model') ?: 'WY
 @Field static final String wyze_property_device_motion_notify_value_false = '0'
 @Field static final String wyze_property_device_sound_notify_value_true = '1'
 @Field static final String wyze_property_device_sound_notify_value_false = '0'
+@Field static final String wyze_property_device_floodlight_value_on = '1'
+@Field static final String wyze_property_device_floodlight_value_off = '2'
 
 metadata {
 	definition(
@@ -125,6 +130,17 @@ metadata {
                 ]
              ]
         )
+		command(
+			"setFloodlightPowerstate",
+			[
+				[
+					"name":"floodlight_powerstate",
+					"description":"Set value to true/false to enable/disable floodlight",
+                     "type":"ENUM",
+                     "constraints":["true","false"]
+			]
+				 ]
+		)
 	}
 
 	preferences {
@@ -222,6 +238,17 @@ def setSoundNotification(sound_notify) {
 
     sendProperty(id, value)
     runIn(pollInterval,refresh)
+}	
+def setFloodlightPowerstate(floodlight_powerstate) {
+logInfo("setFloodlightPowerstate() Pressed")
+if (debugOutput) logDebug('Setting floodlight powerstate to ' + floodlight_powerstate)
+
+value = floodlight_powerstate == "true" ? wyze_property_device_floodlight_value_on : wyze_property_device_floodlight_value_off
+id = wyze_property_floodlight
+
+sendProperty(id, value)
+runIn(pollInterval,refresh)
+
 }
 
 private sendProperty(pid, pvalue) {
@@ -316,6 +343,27 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 
 				if (device.currentValue(eventName) != eventValue) {
 					if (debugOutput) logDebug("Updating Property ${eventName} to ${eventValue}")
+					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
+				}
+            break
+			
+			// Floodlight Powerstate
+			case wyze_property_device_floodlight_value_on:
+			case wyze_property_device_floodlight_value_off:
+            case wyze_property_floodlight:
+				eventName = "switch"
+                eventUnit = null
+
+				if(propertyValue == wyze_property_device_floodlight_value_on) {
+					eventValue = "on"
+				} else if(propertyValue == wyze_property_device_floodlight_value_on) {
+					eventValue = "on"
+				} else {
+					eventValue = "off"
+				}
+
+				if (device.currentValue(eventName) != eventValue) {
+					if (debugOutput) logDebug("Updating Property 'switch' to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
