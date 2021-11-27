@@ -9,12 +9,12 @@ Support is currently limiited to devices I have on hand. Devices will be added a
 ### Currently Supported
 * Wyze Color Bulb (Meshlight)
 * Wyze Plug
+* Wyze Outdoor Plug
+* Wyze Cam (limited support)
 
 ## To be implemented...
 
 * Device Group Update - currenttly after a device group is added, changes to device membership in Wyze are not reflected in Hubitat.
-* Outdoor Plug - I have one but it is acting up.
-* Camera Support?
 
 ## Installation w/ Hubitat Package Manager (Recommended)
 
@@ -36,8 +36,21 @@ In process of submitting...
       * https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-driver.groovy
     * Wyze Plug Group:
       * https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-group-driver.groovy
+    * Wyze Cam:
+      * https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-camera-driver.groovy
+    * Wyze Cam Group:
+      * https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-camera-group-driver.groovy 
       
 4. Install an instance of the WyzeHub app. In Hubitat, go to _Apps > Add User App_, select _WyzeHub_, and follow the prompts to enter your credentials and import devices.
+
+## Troubleshooting
+
+### Auth Issues
+
+  * 2FA *should* work. If you have issue authenticating using 2FA, disable 2FA on your Wyze account and re-enable after connecting WyzeHub.
+  * Token refreshing still isn't perfect, and Wyze also seems to randomly flag tokens with a rate limit. 
+    * If your devices stop working, it is likely due to a token issue. Check the log for errors.
+    * To resolve auth issues, simply re-enter your usename and password in the App settings. This will initiate a new token request.
 
 ## Contributing
 Contributions are welcome if you'd like to see additional devices supported or expanded features. Please do so via a pull request:

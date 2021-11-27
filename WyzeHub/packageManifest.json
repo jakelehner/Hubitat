@@ -3,7 +3,7 @@
    "minimumHEVersion": "2.2.3",
    "author": "Jake Lehner",
    "dateReleased": "2021-09-12",
-   "communityLink": "https://community.hubitat.com/...",
+   "communityLink": "https://community.hubitat.com/t/79504",
    "licenseFile": "",
    "releaseNotes": "*Version 1.2: Add Camera Event Recording Enable/Disable\n\n* Version 1.1: Add basic camera driver. Add outdoor plug support.\n\n* Version 1.0: Initial Release. Support for Color Bulbs, Plugs, and associated groups.",
    "apps": [
@@ -36,7 +36,7 @@
          "required": true
       },
       {
-         "id": "d7bdbc75-2e00-42fc-b6ad-59d371fc8f97",
+         "id": "c7945aa0-2617-49fa-8039-cc9198fdfdfa",
          "name": "WyzeHub Plug",
          "namespace": "jakelehner",
          "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-driver.groovy",
@@ -44,7 +44,7 @@
          "required": true
       },
       {
-         "id": "08f5243d-8b94-4ca6-affa-637325388a4e",
+         "id": "b18bab38-95a3-4596-886c-63d6a6fa8a81",
          "name": "WyzeHub Plug Group",
          "namespace": "jakelehner",
          "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-group-driver.groovy",
