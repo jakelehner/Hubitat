@@ -31,6 +31,8 @@
  * ===================================================================================
  * 
  * Release Notes:
+ *   v1.2 - Bugfix allowing Meshlight to be used with rules engine (thanks @bruderbell!)
+ *        - Add Camera Event Recording Enable/Disable (thanks @fieldsjm!)
  *   v1.1 - Add Camera Driver (thanks @fieldsjm!)
  *        - Add Outdoor Plug
  *        - Hubitat Package Manager
@@ -44,7 +46,7 @@ import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static final String version() { return "v1.1.0" }
+public static final String version() { return "v1.2.0" }
 
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }

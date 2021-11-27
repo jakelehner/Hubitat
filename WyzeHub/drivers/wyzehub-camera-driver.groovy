@@ -29,14 +29,14 @@
  *    you a DONKEY dick. Fix the problem yourself. A non-dick would submit the fix back.
  *
  * Release Notes:
- *   v1.1 - Event Recording Enable/Disable
- *   v1.0 - Initial Release. 
+ *   v1.2 - Event Recording Enable/Disable
+ *   v1.1 - Initial Driver Release. 
  *        - Support for Power On/Off, Notification Preferences
  */
 
 import groovy.transform.Field
 
-public static String version() {  return "v1.1.0"  }
+public static String version() {  return "v1.2.0"  }
 
 public String deviceModel() { return device.getDataValue('product_model') ?: 'WYZEC1-JZ' }
 
