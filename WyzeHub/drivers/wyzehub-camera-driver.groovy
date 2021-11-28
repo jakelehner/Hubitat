@@ -84,6 +84,7 @@ metadata {
         	attribute "notifications_enabled", "bool"
         	attribute "motion_notification", "bool"
         	attribute "sound_notification", "bool"
+			attribute "floodlight_powerstate", "bool"
 		attribute "online", "bool"
         
         command(
@@ -131,7 +132,7 @@ metadata {
              ]
         )
 		command(
-			"setFloodlightPowerstate",
+			"Floodlight On",
 			[
 				[
 					"name":"floodlight_powerstate",
@@ -140,7 +141,7 @@ metadata {
                      "constraints":["true","false"]
 			]
 				 ]
-		)
+			)
 	}
 
 	preferences {
@@ -348,22 +349,13 @@ void createDeviceEventsFromPropertyList(List propertyList) {
             break
 			
 			// Floodlight Powerstate
-			case wyze_property_device_floodlight_value_on:
-			case wyze_property_device_floodlight_value_off:
             case wyze_property_floodlight:
-				eventName = "switch"
+				eventName = "floodlight_powerstate"
                 eventUnit = null
-
-				if(propertyValue == wyze_property_device_floodlight_value_on) {
-					eventValue = "on"
-				} else if(propertyValue == wyze_property_device_floodlight_value_on) {
-					eventValue = "on"
-				} else {
-					eventValue = "off"
-				}
+				eventValue = propertyValue == wyze_property_device_floodlight_value_on ? "true" : "false"
 
 				if (device.currentValue(eventName) != eventValue) {
-					if (debugOutput) logDebug("Updating Property 'switch' to ${eventValue}")
+					if (debugOutput) logDebug("Updating Property ${eventName} to ${eventValue}")
 					app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
 				}
             break
