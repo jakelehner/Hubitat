@@ -74,6 +74,7 @@ metadata {
 	) {
 		capability "Outlet"
 		capability "Refresh"
+		capability "Switch"
 
 		attribute "motion_recording", "bool"
         	attribute "notifications_enabled", "bool"
