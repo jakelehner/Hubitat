@@ -31,6 +31,8 @@
  * ===================================================================================
  * 
  * Release Notes:
+ *   v1.3 - Address issue with refresh token logic.
+ *        - Add Light Strip Support (non-pro)
  *   v1.2 - Bugfix allowing Meshlight to be used with rules engine (thanks @bruderbell!)
  *        - Add Camera Event Recording Enable/Disable (thanks @fieldsjm!)
  *   v1.1 - Add Camera Driver (thanks @fieldsjm!)
@@ -46,7 +48,7 @@ import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static final String version() { return "v1.2.0" }
+public static final String version() { return "v1.3.0" }
 
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }
@@ -63,6 +65,7 @@ public static final String apiAppVersion() { return "2.19.14" }
 ]
 @Field static final Map driverMap = [
    'MeshLight': [label: 'Color Bulb', driver: 'WyzeHub Color Bulb'],
+   'LightStrip' : [label: 'Light Strip', driver: 'WyzeHub Color Bulb'],
    'Plug': [label: 'Plug', driver: 'WyzeHub Plug'],
    'OutdoorPlug': [label: 'Outdoor Plug', driver: 'WyzeHub Plug'],
    'Camera': [label: 'Camera', driver: 'WyzeHub Camera'],
@@ -502,7 +505,7 @@ def pageSelectDevices() {
 			}
 			
 			if(!productType) {
-				logDebug("${device.nickname} (${device.mac}) unsupported. Skipping...")
+				logDebug("${device.nickname} (${device.mac}) unsupported. Model: ${device.product_model}. Type: ${device.product_type}. Skipping...")
 				unsupportedDevices << device
 				return
 			} 
@@ -988,15 +991,20 @@ private validateApiResponse(response) {
 	return true;
 }
 
-private refreshAccessTeoken(Closure closure = {}) {
+private refreshAccessToken(Closure closure = {}) {
+	logDebug('refreshAccessToken()')
+
 	requestBody = wyzeRequestBody() + [
 		'sv': 'd91914dd28b7492ab9dd17f7707d35a3',
 		'refresh_token': state.refresh_token
 	]
+	requestBody['access_token'] = null
 
 	apiPost('/app/user/refresh_token', requestBody) { response ->
-		state.access_token = response.access_token
-		state.refresh_token = response.refresh_token
+		logDebug("refreshToken Resposne:")
+		logDebug(response.data)
+		state.access_token = response.data.access_token
+		state.refresh_token = response.data.refresh_token
 		closure(response)
 	}
 }

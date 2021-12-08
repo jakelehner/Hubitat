@@ -2,12 +2,13 @@
 
 This is an _unofficial_ Hubitat implementation for Wyze devices. The app offers basic control over supported devices and device groups.
 
-Join the conversation in the [Hubitat Community discussion thread](https://community.hubitat.com/t/release-wyzehub-wyze-device-integration/79504).
+Join the conversation in the [Hubitat Community discussion thread](https://community.hubitat.com/t/79504).
 ## Supported Devices
 Support is currently limiited to devices I have on hand. Devices will be added as I get them or as the community contributes.
 
 ### Currently Supported
 * Wyze Color Bulb (Meshlight)
+* Wyze Lightstrip (Non Pro Model. Single Color.)
 * Wyze Plug
 * Wyze Outdoor Plug
 * Wyze Cam (limited support)
