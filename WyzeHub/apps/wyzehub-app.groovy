@@ -48,7 +48,7 @@ import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static final String version() { return "v1.3.0" }
+public static final String version() { return return "v1.3.1" }
 
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }
@@ -970,8 +970,8 @@ private validateApiResponse(response) {
 	if (responseData.code == "2001") {
 		logError("Access Token Invalid. Attempting to refresh token.")
 		logDebug(response.data)
-		refreshAccessTeoken() { refreshTokenResponse ->
-			apiPost(path, body, closure)
+		refreshAccessToken() { refreshTokenResponse ->
+			return false
 		}
 	}
 
@@ -988,7 +988,7 @@ private validateApiResponse(response) {
 		throw new Exception("Invalid Response Data Code: ${response.data.code}")
 	}
 
-	return true;
+	return true
 }
 
 private refreshAccessToken(Closure closure = {}) {
