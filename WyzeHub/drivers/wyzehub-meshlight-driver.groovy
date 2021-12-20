@@ -33,7 +33,7 @@
 import groovy.transform.Field
 import hubitat.helper.ColorUtils
 
-public static String version() { return "v1.3.1"  }
+public static String version() { return "v1.3.2"  }
 
 public String deviceModel() { return device.getDataValue('product_model') ?: 'WLPA19C' }
 

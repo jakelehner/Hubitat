@@ -13,7 +13,7 @@
          "namespace": "jakelehner",
          "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/apps/wyzehub-app.groovy",
          "required": true,
-         "version": "1.3.1",
+         "version": "1.3.2",
          "primary": true,
          "oauth": false
       }
@@ -24,7 +24,7 @@
          "name": "WyzeHub Color Bulb",
          "namespace": "jakelehner",
          "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-meshlight-driver.groovy",
-         "version": "1.3.1",
+         "version": "1.3.2",
          "required": true
       },
       {
@@ -32,7 +32,7 @@
          "name": "WyzeHub Color Bulb Group",
          "namespace": "jakelehner",
          "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-meshlight-group-driver.groovy",
-         "version": "1.3.1",
+         "version": "1.3.2",
          "required": true
       },
       {
@@ -40,7 +40,7 @@
          "name": "WyzeHub Plug",
          "namespace": "jakelehner",
          "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-driver.groovy",
-         "version": "1.3.1",
+         "version": "1.3.2",
          "required": true
       },
       {
@@ -48,7 +48,7 @@
          "name": "WyzeHub Plug Group",
          "namespace": "jakelehner",
          "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-group-driver.groovy",
-         "version": "1.3.1",
+         "version": "1.3.2",
          "required": true
       },
       {
@@ -56,7 +56,7 @@
          "name": "WyzeHub Camera",
          "namespace": "jakelehner",
          "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-camera-driver.groovy",
-         "version": "1.3.1",
+         "version": "1.3.2",
          "required": true
       },
       {
@@ -64,7 +64,7 @@
          "name": "WyzeHub Camera Group",
          "namespace": "jakelehner",
          "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-camera-group-driver.groovy",
-         "version": "1.3.1",
+         "version": "1.3.2",
          "required": true
       }
    ]
