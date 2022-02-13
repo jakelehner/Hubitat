@@ -48,7 +48,7 @@ import groovy.transform.Field
 import java.security.MessageDigest
 import static java.util.UUID.randomUUID
 
-public static final String version() { return "v1.3.2" }
+public static final String version() { return "v1.4" }
 
 public static final String apiAppName() { return "com.hualai" }
 public static final String apiAppVersion() { return "2.19.14" }
@@ -57,6 +57,7 @@ public static final String apiAppVersion() { return "2.19.14" }
 
 @Field static final Map groupDriverMap = [
     1: [label: 'Camera Group', driver: 'WyzeHub Camera Group'],
+	2: [label: 'Bulb Group', driver: 'WyzeHub Bulb Group'],
     5: [label: 'Plug Group', driver: 'WyzeHub Plug Group'],
     8: [label: 'Color Bulb Group', driver: 'WyzeHub Color Bulb Group'],
 ]
@@ -64,12 +65,13 @@ public static final String apiAppVersion() { return "2.19.14" }
 	'WLPPO'
 ]
 @Field static final Map driverMap = [
-   'MeshLight': [label: 'Color Bulb', driver: 'WyzeHub Color Bulb'],
-   'LightStrip' : [label: 'Light Strip', driver: 'WyzeHub Color Bulb'],
-   'Plug': [label: 'Plug', driver: 'WyzeHub Plug'],
-   'OutdoorPlug': [label: 'Outdoor Plug', driver: 'WyzeHub Plug'],
-   'Camera': [label: 'Camera', driver: 'WyzeHub Camera'],
-   'default': [label: 'Unsupported Type', driver: null]
+	'Light': [label: 'Bulb', driver: 'WyzeHub Bulb'],
+	'MeshLight': [label: 'Color Bulb', driver: 'WyzeHub Color Bulb'],
+	'LightStrip' : [label: 'Light Strip', driver: 'WyzeHub Color Bulb'],
+	'Plug': [label: 'Plug', driver: 'WyzeHub Plug'],
+	'OutdoorPlug': [label: 'Outdoor Plug', driver: 'WyzeHub Plug'],
+	'Camera': [label: 'Camera', driver: 'WyzeHub Camera'],
+	'default': [label: 'Unsupported Type', driver: null]
 ]
 
 @Field static final String log_level_debug   = '5'

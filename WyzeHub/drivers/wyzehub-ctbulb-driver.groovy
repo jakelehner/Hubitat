@@ -1,5 +1,5 @@
 /*
- * Import URL: https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-meshlight-driver.groovy
+ * Import URL: https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-ctbulb-driver.groovy
  *
  * DON'T BE A DICK PUBLIC LICENSE
  *
@@ -35,7 +35,7 @@ import hubitat.helper.ColorUtils
 
 public static String version() { return "v1.4"  }
 
-public String deviceModel() { return device.getDataValue('product_model') ?: 'WLPA19C' }
+public String deviceModel() { return device.getDataValue('product_model') ?: 'WLPA19' }
 
 @Field static final String wyze_property_power = 'P3'
 @Field static final String wyze_property_device_online = 'P5'
@@ -44,10 +44,7 @@ public String deviceModel() { return device.getDataValue('product_model') ?: 'WL
 @Field static final String wyze_property_rssi = 'P1504'
 @Field static final String wyze_property_remaing_time = 'P1505'
 @Field static final String wyze_property_vacation_mode = 'P1506'
-@Field static final String wyze_property_color = 'P1507' 
-@Field static final String wyze_property_color_mode = 'P1508' 
 @Field static final String wyze_property_power_loss_recovery = 'P1509' 
-@Field static final String wyze_property_delay_off = 'P1510'
  
 @Field static final String wyze_property_power_value_on = '1'
 @Field static final String wyze_property_power_value_off = '0'
@@ -55,37 +52,22 @@ public String deviceModel() { return device.getDataValue('product_model') ?: 'WL
 @Field static final String wyze_property_device_online_value_false = '0'
 @Field static final String wyze_property_device_vacation_mode_value_true = '1'
 @Field static final String wyze_property_device_vacation_mode_value_false = '0'
-@Field static final String wyze_property_color_mode_value_ct = '2' 
-@Field static final String wyze_property_color_mode_value_rgb = '1' 
 
 import groovy.transform.Field
 
 metadata {
 	definition(
-		name: "WyzeHub Color Bulb", 
+		name: "WyzeHub Bulb", 
 		namespace: "jakelehner", 
 		author: "Jake Lehner", 
-		importUrl: "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-meshlight-driver.groovy"
+		importUrl: "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-ctbulb-driver.groovy"
 	) {
 		capability "Light"
 		capability "SwitchLevel"
 		capability "ColorTemperature"
-		capability "ColorControl"
-		capability "ColorMode"
 		capability "Refresh"
 		capability "Switch"
-		// capability "LightEffects"
-
-		command(
-			"setColorHEX", 
-			[
-				[
-					"name": "HEX Color*", 
-					"type": "STRING", 
-					"description": "Color in HEX no #"
-				]
-			]
-		)
+		
 		// command "toggleVacationMode"
 		// command "flashOnce"
 		
@@ -130,27 +112,15 @@ def refresh() {
 def on() {
 	app = getApp()
 	logInfo("'On' Pressed")
-	actions = [
-		[
-			'pid': wyze_property_power,
-			'pvalue': wyze_property_power_value_on
-		]
-	]
-
-	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
+	
+	app.apiSetDeviceProperty(device.deviceNetworkId, deviceModel(), wyze_property_power, wyze_property_power_value_on)
 }
 
 def off() {
 	app = getApp()
 	logInfo("'Off' Pressed")
-	actions = [
-		[
-			'pid': wyze_property_power,
-			'pvalue': wyze_property_power_value_off
-		]
-	]
-
-	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
+	
+	app.apiSetDeviceProperty(device.deviceNetworkId, deviceModel(), wyze_property_power, wyze_property_power_value_off)
 }
 
 def setLevel(level, durationSecs = null) {
@@ -158,15 +128,7 @@ def setLevel(level, durationSecs = null) {
 	logInfo("setLevel() Pressed")
 
 	level = level.min(100).max(0)
-
-	actions = [
-		[
-			'pid': wyze_property_brightness,
-			'pvalue': level.toString()
-		]
-	]
-
-	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
+	app.apiSetDeviceProperty(device.deviceNetworkId, deviceModel(), wyze_property_brightness, level.toString())
 }
 
 def setColorTemperature(colorTemperature, level = null, durationSecs = null) {
@@ -180,98 +142,10 @@ def setColorTemperature(colorTemperature, level = null, durationSecs = null) {
 		colorTemperature = 6500
 	}
 
-	actions = [
-		[
-			'pid': wyze_property_color_temp,
-			'pvalue': colorTemperature.toString()
-		]
-	]
-
-	if (level) {
-		actions << [
-			'pid': wyze_property_brightness,
-			'pvalue': level.toString()
-		]
-	}
-
-	logDebug(actions)
-
-	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
+	app.apiSetDeviceProperty(device.deviceNetworkId, deviceModel(), wyze_property_color_temp, colorTemperature.toString())
+	app.apiSetDeviceProperty(device.deviceNetworkId, deviceModel(), wyze_property_brightness, level.toString())
 }
 
-def setColor(colormap) {
-	app = getApp()
-	logInfo("setColor() Pressed")
-	
-	hex = hsvToHexNoHash(colormap.hue, colormap.saturation, colormap.level)
-	
-	logDebug('Setting color to HEX ' + hex)
-
-	actions = [
-		[
-			'pid': wyze_property_color,
-			'pvalue': hex
-		]
-	]
-
-	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
-}
-
-def setColorHEX(String hexColor) {
-	app = getApp()
-	logInfo("setColorHEX() Pressed")
-	
-	logDebug('Setting color to HEX ' + hexColor)
-
-	actions = [
-		[
-			'pid': wyze_property_color,
-			'pvalue': hexColor
-		]
-	]
-
-	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
-}
-
-def setHue(hue) {
-	app = getApp()
-	logInfo("setHue() Pressed")
-
-	// Must be between 0 and 100
-	hue = hue.min(100).max(0)
-	currentHsv = hexToHsv(device.currentValue('color'))
-
-	hex = hsvToHexNoHash(hue, currentHsv[1], currentHsv[2])
-
-	actions = [
-		[
-			'pid': wyze_property_color,
-			'pvalue': hex
-		]
-	]
-
-	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)	
-}
-
-def setSaturation(saturation) {
-	app = getApp()
-	logInfo("setSaturation() Pressed")
-
-	// Must be between 0 and 100
-	saturation = saturation.min(100).max(0)
-	currentHsv = hexToHsv(device.currentValue('color'))
-
-	hex = hsvToHexNoHash(currentHsv[0], saturation, currentHsv[2])
-
-	actions = [
-		[
-			'pid': wyze_property_color,
-			'pvalue': hex
-		]
-	]
-
-	app.apiRunActionList(device.deviceNetworkId, deviceModel(), actions)
-}
 
 void createDeviceEventsFromPropertyList(List propertyList) {
     app = getApp()
@@ -370,44 +244,6 @@ void createDeviceEventsFromPropertyList(List propertyList) {
 				}
             break
 
-            // Color
-            case wyze_property_color:
-								
-				if (deviceColorMode == 'RGB') {
-					// Set HEX Color
-					eventName = "color"
-					eventUnit = null
-					eventValue = propertyValue
-
-					if (device.currentValue(eventName) != eventValue) {
-						logInfo("Updating Property 'color' to ${eventValue}")
-						app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-					}
-
-					hsv = hexToHsv(propertyValue)
-					
-					// Set Hue
-					eventName = "hue"
-					eventUnit = null
-					eventValue = hsv[0]
-
-					if (device.currentValue(eventName) != eventValue) {
-						logInfo("Updating Property 'hue' to ${eventValue}")
-						app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-					}
-
-					// Set Saturation
-					eventName = "saturation"
-					eventUnit = null
-					eventValue = hsv[1]
-
-					if (device.currentValue(eventName) != eventValue) {
-						logInfo("Updating Property 'saturation' to ${eventValue}")
-						app.doSendDeviceEvent(device, eventName, eventValue, eventUnit)
-					}
-				}
-            break
-
             // Vacation Mode
             case wyze_property_vacation_mode:
                 eventName = "vacationMode"
@@ -421,20 +257,6 @@ void createDeviceEventsFromPropertyList(List propertyList) {
             break
         }
     }
-}
-
-private def hexToHsv(String hex) {
-    if (hex[0] != '#') {
-        hex = '#' + hex
-    }
-	rgb = hubitat.helper.ColorUtils.hexToRGB(hex)
-	hsv = hubitat.helper.ColorUtils.rgbToHSV(rgb)
-    return hsv
-}
-
-private def String hsvToHexNoHash(hue, saturation, level) {
-	rgb = hubitat.helper.ColorUtils.hsvToRGB([hue, saturation, level])
-	return hubitat.helper.ColorUtils.rgbToHEX(rgb).substring(1)
 }
 
 private getApp() {

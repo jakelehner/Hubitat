@@ -1,5 +1,5 @@
 /*
- * Import URL: https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-meshlight-group-driver.groovy
+ * Import URL: https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-ctbulb-group-driver.groovy
  *
  * DON'T BE A DICK PUBLIC LICENSE
  *
@@ -36,35 +36,22 @@ public static String version() { return "v1.4"  }
 
 public String deviceModel() { return '' }
 
-public String groupTypeId() { return 8 }
+public String groupTypeId() { return 2 }
 
 import groovy.transform.Field
 
 metadata {
 	definition(
-		name: "WyzeHub Color Bulb Group", 
+		name: "WyzeHub Bulb Group", 
 		namespace: "jakelehner", 
 		author: "Jake Lehner", 
-		importUrl: "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-meshlight-group-driver.groovy"
+		importUrl: "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-ctbulb-group-driver.groovy"
 	) {
 		capability "Light"
 		capability "SwitchLevel"
 		capability "ColorTemperature"
-		capability "ColorControl"
-		capability "ColorMode"
 		capability "Refresh"
-		// capability "LightEffects"
-
-		command(
-			"setColorHEX", 
-			[
-				[
-					"name": "HEX Color*", 
-					"type": "STRING", 
-					"description": "Color in HEX no #"
-				]
-			]
-		)
+		
 		// command "toggleVacationMode"
 		// command "flashOnce"
 	}
@@ -132,38 +119,6 @@ def setColorTemperature(colortemperature, level = null, durationSecs = null) {
 	logDebug("setColorTemperature()")
 	getChildDevices().each { device -> 
 		device.setColorTemperature(colortemperature, level, durationSecs)
-	}
-}
-
-def setColor(colormap) {
-	app = getApp()
-	logDebug("setColor()")
-	getChildDevices().each { device -> 
-		device.setColor(colormap)
-	}
-}
-
-def setColorHEX(String hexColor) {
-	app = getApp()
-	logDebug("setColor()")
-	getChildDevices().each { device -> 
-		device.setColorHEX(hexColor)
-	}
-}
-
-def setHue(hue) {
-	app = getApp()
-	logDebug("setHue()")
-	getChildDevices().each { device -> 
-		device.setHue(hue)
-	}
-}
-
-def setSaturation(saturation) {
-	app = getApp()
-	logDebug("setSaturation()")
-	getChildDevices().each { device -> 
-		device.setSaturation(saturation)
 	}
 }
 

@@ -7,6 +7,7 @@ Join the conversation in the [Hubitat Community discussion thread](https://commu
 Support is currently limiited to devices I have on hand. Devices will be added as I get them or as the community contributes.
 
 ### Currently Supported
+* Wyze Bulb
 * Wyze Color Bulb (Meshlight)
 * Wyze Lightstrip (Non Pro Model. Single Color.)
 * Wyze Plug
@@ -29,10 +30,12 @@ In process of submitting...
 
 
 3. Install the Drivers. In Hubitat, access the _Drivers Code_ menu. Click _New Driver_ then _Import_. Paste the URL for a driver listed below. Repeat for all drivers.
+    * Wyze Bulb: 
+      * https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-ctbulb-driver.groovy
+    * Wyze Bulb Group:
+      * https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-ctbulb-group-driver.groovy
     * Wyze Color Bulb: 
       * https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-meshlight-driver.groovy
-    * Wyze Color Bulb Group:
-      * https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-meshlight-group-driver.groovy
     * Wyze Plug:
       * https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-plug-driver.groovy
     * Wyze Plug Group:
