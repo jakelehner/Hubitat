@@ -274,9 +274,13 @@ def pageAuthSettings() {
 		refreshInterval: 0,
 		nextPage: 'pageDoAuth'
 	) {
-		section() {
+		section('User Authentication') {
             input name: 'username', type: 'text', title: 'Username', required: true, submitOnChange: true
             input name: 'password', type: 'password', title: 'Password', required: true, submitOnChange: true
+        }
+		section('Manually Enter Tokens (Troubleshooting)') {
+            input name: 'access_token', type: 'text', title: 'Access Token', required: false, submitOnChange: true
+            input name: 'refresh_token', type: 'text', title: 'Refresh Token', required: false, submitOnChange: true
         }
    		displayFooter()
 	}
@@ -294,34 +298,43 @@ def pageDoAuth() {
 	loggedIn = false
 	mfaEnabled = false
 	clearState()
-	authenticateWyzeAccount(settings.username, settings.password)
 
-	if (state.access_token) {
-		logDebug('access token found')
-		logDebug(state.access_token)
-		loggedIn = true
-	} else if (state.mfa_options) {
+	// Token Override?
+	if (settings.access_token) {
+		logDebug('Token Override')
+		state.access_token = settings.access_token
+		state.refresh_token = settings.refresh_token
 		
-		mfaEnabled = true
-		nextPage = 'pageDoMfaAuth'
+	} else {
+		authenticateWyzeAccount(settings.username, settings.password)
 
-		if (state.mfa_options.contains('TotpVerificationCode')) {
-			// TOTP
-			logInfo('TOTP MFA Enabled')
-			mfaTitle = 'TOTP MFA Enabled'
-			mfaText = 'Enter TOTP Code'
-			state.mfa_type = 'TotpVerificationCode'
-		} else if(state.mfa_options.contains('PrimaryPhone')) {
-			// SMS
-			logInfo('SMS MFA Enabled')
-			mfaTitle = 'SMS MFA Enabled'
-			mfaText = 'Enter SMS Code'
-			state.mfa_type = 'PrimaryPhone'
-			sendSmsCode('Primary', state.sms_session_id, state.user_id)
-		} else {
-			logError('No supported MFA Types Found')
-			logDebug(state.mfa_options)
-		}		
+		if (state.access_token) {
+			logDebug('access token found')
+			logDebug(state.access_token)
+			loggedIn = true
+		} else if (state.mfa_options) {
+			
+			mfaEnabled = true
+			nextPage = 'pageDoMfaAuth'
+
+			if (state.mfa_options.contains('TotpVerificationCode')) {
+				// TOTP
+				logInfo('TOTP MFA Enabled')
+				mfaTitle = 'TOTP MFA Enabled'
+				mfaText = 'Enter TOTP Code'
+				state.mfa_type = 'TotpVerificationCode'
+			} else if(state.mfa_options.contains('PrimaryPhone')) {
+				// SMS
+				logInfo('SMS MFA Enabled')
+				mfaTitle = 'SMS MFA Enabled'
+				mfaText = 'Enter SMS Code'
+				state.mfa_type = 'PrimaryPhone'
+				sendSmsCode('Primary', state.sms_session_id, state.user_id)
+			} else {
+				logError('No supported MFA Types Found')
+				logDebug(state.mfa_options)
+			}		
+		}
 	}
 
 	return dynamicPage(
