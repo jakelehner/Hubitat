@@ -20,10 +20,18 @@
    ],
    "drivers": [
       {
-         "id": "b171c31b-a2c8-4294-9407-46e2ae91e049",
+         "id": "5cc51957-2377-48bf-a29d-45339462f06e",
          "name": "WyzeHub CT Bulb",
          "namespace": "jakelehner",
          "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-ctbulb-driver.groovy",
+         "version": "1.4",
+         "required": true
+      },
+      {
+         "id": "0dd3a2a3-ba6a-46dd-8df7-fc984dd3e504",
+         "name": "WyzeHub CT Bulb Group",
+         "namespace": "jakelehner",
+         "location": "https://raw.githubusercontent.com/jakelehner/Hubitat/master/WyzeHub/drivers/wyzehub-ctbulb-group-driver.groovy",
          "version": "1.4",
          "required": true
       },
