@@ -78,4 +78,4 @@ The following GitHub repos were of great help in the development of this package
 * 🐍 [shauntarves/wyze-sdk](https://github.com/shauntarves/wyze-sdk): Unofficial Wyze SDK in Python. Used quite a bit as a reference for this libray.
 * 🏡 [ndejong5/homebridge-wyze-connected-home-op](https://github.com/ndejong5/homebridge-wyze-connected-home-op): Wyze Homebridge driver. I initially started updating this driver to add support for the Color Bulb. Quickly got frustrated with Homebridge and decided to abandon that effort for this one.
 * ☕ [HubitatCommunity/CoCoHue](https://github.com/HubitatCommunity/CoCoHue): Used extensively as a reference for Hubitat app and driver development.
-* [amrishraje/homebridge-wyze-connected-home-v3](https://github.com/amrishraje/homebridge-wyze-connected-home-v3): Used as a reference for adding Wyze Lock. 
+* 🔑 [amrishraje/homebridge-wyze-connected-home-v3](https://github.com/amrishraje/homebridge-wyze-connected-home-v3): Used as a reference for adding Wyze Lock. 
