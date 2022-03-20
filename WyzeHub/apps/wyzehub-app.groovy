@@ -697,6 +697,10 @@ private def updateDeviceCache(Closure closure = null) {
 	}
 }
 
+private def getAccessToken() {
+  return state.access_token
+}
+
 private def Map getDeviceCache() {
 	return state.deviceCache
 }
@@ -952,7 +956,7 @@ def controlLock(String deviceUuid, String action, Closure closure = { } ) {
     ]
 
     try {
-      httpPostJson(params) { closure(response?.data) }
+      httpPostJson(params) { response -> closure(response) }
     } catch (Exception e) {
       logError("API Call to ${params.uri}${params.path} failed with Exception: ${e}")
     }
