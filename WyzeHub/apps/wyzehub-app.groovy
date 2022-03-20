@@ -969,18 +969,18 @@ private String createRequestSignature(String httpVerb, Map body, String requestP
     //   ['key1': 'value1', 'key2': 'value2']
     // would be stringifed as:
     //   'key1=value1&key2=value2'
-    // The code in homebridge-wyze-connected-home-v3 also sorted the request body keys
+    // The code in homebridge-wyze-connected-home-v3 also sorts the request body keys
     // alphabetically, so this code does as well. It is unlcear if that is required, though.
     stringifiedBody = body.sort().collect {key, value -> "${key}=${value}"}.join('&')
 
     // The signature should include the HTTP verb, the path of the request, the stringified
     // body and the application secret concatenated together. The concatenated string
-    // should be MD5 hashed and converted into a hex string.
+    // should be URL encoded, MD5 hashed, and converted into a hex string.
     unencodedSignature = "${httpVerb}${requestPath}${stringifiedBody}${appSecret}"
     urlEncodedSignature = URLEncoder.encode(unencodedSignature, 'UTF-8')
 
-    signatureDigest = MessageDigest.getInstance('MD5').digest(urlEncodedSignature.getBytes('UTF-8'))
-    finalSignature = signatureDigest.encodeHex().toString()
+    hashedSignature = MessageDigest.getInstance('MD5').digest(urlEncodedSignature.getBytes('UTF-8'))
+    finalSignature = hashedSignature.encodeHex().toString()
     return finalSignature
 }
 
