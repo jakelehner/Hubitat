@@ -62,7 +62,8 @@ public static final String apiAppVersion() { return "2.19.14" }
     8: [label: 'Color Bulb Group', driver: 'WyzeHub Color Bulb Group'],
 ]
 @Field static final List ignoreDeviceModels = [
-	'WLPPO'
+	'WLPPO',
+	'YD.GW1'  // Wyze Lock Gateway
 ]
 @Field static final Map driverMap = [
 	'Light': [label: 'Bulb', driver: 'WyzeHub Bulb'],
@@ -71,6 +72,7 @@ public static final String apiAppVersion() { return "2.19.14" }
 	'Plug': [label: 'Plug', driver: 'WyzeHub Plug'],
 	'OutdoorPlug': [label: 'Outdoor Plug', driver: 'WyzeHub Plug'],
 	'Camera': [label: 'Camera', driver: 'WyzeHub Camera'],
+	'Lock': [label: 'Lock', driver: 'WyzeHub Lock'],
 	'default': [label: 'Unsupported Type', driver: null]
 ]
 
@@ -84,6 +86,9 @@ public static final String apiAppVersion() { return "2.19.14" }
 
 String wyzeAuthBaseUrl() { return "https://auth-prod.api.wyze.com" }
 String wyzeApiBaseUrl() { return "https://api.wyzecam.com" }
+String wyzeLockApiBaseUrl() { return 'https://yd-saas-toc.wyzecam.com' }
+String wyzeAppKey() { return '275965684684dbdaf29a0ed9' }
+String wyzeAppSecret() { return '4deekof1ba311c5c33a9cb8e12787e8c' }
 
 Map wyzeRequestHeaders() {
     return [
@@ -921,6 +926,58 @@ def apiSetDeviceProperty(String deviceMac, String deviceModel, String propertyId
 	]
 	
 	asyncapiPost('/app/v2/device/set_property', requestBody, 'deviceEventsCallback', callbackData)
+}
+
+// Most of the lock control code was inspired by homebridge-wyze-connected-home-v3
+// at https://github.com/amrishraje/homebridge-wyze-connected-home-v3
+def controlLock(String deviceUuid, String action, Closure closure = { } ) {
+    path = '/openapi/lock/v1/control'
+    body = [
+      'access_token': getAccessToken(),
+      'action': action,
+      'key': wyzeAppKey(),
+      'timestamp': (new Date()).getTime(),
+      'uuid': deviceUuid
+    ]
+
+    // Sign the request
+    body.sign = createRequestSignature('post', body, path, wyzeAppSecret())
+
+    bodyJson = (new JsonBuilder(body)).toString()
+
+    params = [
+      'uri'  : wyzeLockApiBaseUrl(),
+      'path' : path,
+      'body' : bodyJson
+    ]
+
+    try {
+      httpPostJson(params) { closure(response?.data) }
+    } catch (Exception e) {
+      logError("API Call to ${params.uri}${params.path} failed with Exception: ${e}")
+    }
+}
+
+private String createRequestSignature(String httpVerb, Map body, String requestPath, String appSecret) {
+    // The request signature needs to include the request body represented similarly to
+    // a URL query string. The keys and values should be separated by '=' signs and
+    // each key/value pair should be separated by '&'. For instance, a body of
+    //   ['key1': 'value1', 'key2': 'value2']
+    // would be stringifed as:
+    //   'key1=value1&key2=value2'
+    // The code in homebridge-wyze-connected-home-v3 also sorted the request body keys
+    // alphabetically, so this code does as well. It is unlcear if that is required, though.
+    stringifiedBody = body.sort().collect {key, value -> "${key}=${value}"}.join('&')
+
+    // The signature should include the HTTP verb, the path of the request, the stringified
+    // body and the application secret concatenated together. The concatenated string
+    // should be MD5 hashed and converted into a hex string.
+    unencodedSignature = "${httpVerb}${requestPath}${stringifiedBody}${appSecret}"
+    urlEncodedSignature = URLEncoder.encode(unencodedSignature, 'UTF-8')
+
+    signatureDigest = MessageDigest.getInstance('MD5').digest(urlEncodedSignature.getBytes('UTF-8'))
+    finalSignature = signatureDigest.encodeHex().toString()
+    return finalSignature
 }
 
 def asyncapiPost(String path, Map body = [:], String callbackMethod = null, Map callbackData = [:]) {
