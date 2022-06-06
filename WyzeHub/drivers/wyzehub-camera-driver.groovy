@@ -85,7 +85,7 @@ metadata {
         	attribute "notifications_enabled", "bool"
         	attribute "motion_notification", "bool"
         	attribute "sound_notification", "bool"
-			attribute "floodlight_powerstate", "bool"
+			attribute "floodlight_powerstate", "enum", ["true","false"]
 		attribute "online", "bool"
         
         command(
