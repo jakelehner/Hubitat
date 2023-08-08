@@ -85,13 +85,16 @@ public static final String apiAppVersion() { return "2.19.14" }
 String wyzeAuthBaseUrl() { return "https://auth-prod.api.wyze.com" }
 String wyzeApiBaseUrl() { return "https://api.wyzecam.com" }
 
-Map wyzeRequestHeaders() {
-    return [
-        "x-api-key": "WMXHYf79Nr5gIlt3r0r7p9Tcw5bvs6BB4U8O8nGJ",
-        "Content-Type": "application/json",
-		"Accept": "application/json",
-		"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1 Safari/605.1.15"
-    ]
+Map wyzeRequestHeaders(apikey=null, keyid=null) {
+	headers = [
+			"Content-Type": "application/json",
+			"Accept": "application/json",
+			"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1 Safari/605.1.15"
+		]
+	if ( apikey ) {
+		headers << ["Keyid": keyid, "Apikey": apikey]
+	}
+	return headers
 }
 
 Map wyzeRequestBody() {
@@ -224,7 +227,7 @@ def pageMenu()
 		app.removeSetting('deviceGroupsToAdd')
 	}
 	
-	if (!(settings.username && settings.password)) {
+	if (!(settings.username && settings.password && settings.apikey && settings.keyid)) {
 		logDebug('Auth Credentials not set. Forwarding to pageAuthSettings...')
 		return pageAuthSettings()
 	}
@@ -277,6 +280,8 @@ def pageAuthSettings() {
 		section('User Authentication') {
             input name: 'username', type: 'text', title: 'Username', required: true, submitOnChange: true
             input name: 'password', type: 'password', title: 'Password', required: true, submitOnChange: true
+			input name: 'apikey', type: 'text', title: 'ApiKey', required: true, submitOnChange: true
+			input name: 'keyid', type: 'text', title: 'KeyId', required: true, submitOnChange: true
         }
 		section('Manually Enter Tokens (Troubleshooting)') {
             input name: 'access_token', type: 'text', title: 'Access Token', required: false, submitOnChange: true
@@ -306,7 +311,7 @@ def pageDoAuth() {
 		state.refresh_token = settings.refresh_token
 		
 	} else {
-		authenticateWyzeAccount(settings.username, settings.password)
+		authenticateWyzeAccount(settings.username, settings.password, settings.apikey, settings.keyid)
 
 		if (state.access_token) {
 			logDebug('access token found')
@@ -379,6 +384,8 @@ def pageDoMfaAuth() {
 	authenticateWyzeAccount(
 		settings.username, 
 		settings.password, 
+		settings.apikey,
+		settings.keyid,
 		state.mfa_type, 
 		verificationId, 
 		verificationCode
@@ -589,7 +596,8 @@ def getFormat(type){
 // | Biznas Logic |
 //  --------------
 
-def authenticateWyzeAccount(String username, String password, String mfaType = null, String verificationId = null, String verificationCode = null) {
+def authenticateWyzeAccount(String username, String password, String apikey = null, String keyid = null,
+	String mfaType = null, String verificationId = null, String verificationCode = null) {
     logInfo('Authenticating User...')
 
 	body = [
@@ -597,22 +605,24 @@ def authenticateWyzeAccount(String username, String password, String mfaType = n
 		'password': hashPassword(password)
 	]
 
+
 	if (mfaType) {
 		body['mfa_type'] = mfaType
 		body['verification_id'] = verificationId
 		body['verification_code'] = verificationCode
 	}
-
-	logDebug(body)
+	bodyJson = (new JsonBuilder(body)).toString()
+	logDebug(bodyJson)
+	
 
     params = [
 		'uri'                	: wyzeAuthBaseUrl(),
-		'headers'            	: wyzeRequestHeaders(),
+		'headers'            	: wyzeRequestHeaders(apikey, keyid),
 		'requestContentType' 	: "application/json; charset=utf-8",
-		'path'			     	: "/user/login",
-		'body' 					: body
+		'path'			     	: "/api/user/login",
+		'body' 					: bodyJson
 	]
-
+	logDebug(params)
 	try {
 		httpPost(params) { response ->
 			logInfo("Login Request was OK: ${response.status}")
@@ -642,7 +652,7 @@ private def sendSmsCode(String mfaPhoneType, String smsSessionId, String userId)
 		'uri'                : wyzeAuthBaseUrl(),
 		'headers'            : wyzeRequestHeaders(),
 		'requestContentType' : "application/json; charset=utf-8",
-		'path'			     : "/user/login/sendSmsCode",
+		'path'			     : "/api/user/login/sendSmsCode",
 		'query' : [
 			'mfaPhoneType': mfaPhoneType,
 			'sessionId': smsSessionId,
